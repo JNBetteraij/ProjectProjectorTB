@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<script
+			type="module"
+			src="../javascript/scanner.js"
+		></script>
+		<link
+			rel="stylesheet"
+			href="../css/style.css"
+		/>
+		<title>JavaScript Folder Scanner</title>
+	</head>
+	<body>
+		<h1>JavaScript Folder Scanner</h1>
+		<p class="muted">
+			Select a project folder to scan its JavaScript files for imports and exports. You can also provide a search
+			pattern to find matches in both comments and code.
+		</p>
+
+		<p class="warning">
+			<strong>Browser limitation:</strong> this page can only read files you explicitly select. It does not upload
+			them. It scans the selected files in your browser.
+		</p>
+
+		<section class="controls">
+			<label>
+				Project folder
+				<input
+					id="folderInput"
+					type="file"
+					webkitdirectory
+					directory
+					multiple
+				/>
+			</label>
+			<label>
+				Optional comment/code search pattern (regular expression)
+				<input
+					id="patternInput"
+					type="text"
+					placeholder="Leave blank to scan imports and exports only"
+				/>
+			</label>
+			<label>
+				File extensions (comma-separated)
+				<input
+					id="extensionsInput"
+					type="text"
+					value=".js,.jsx,.mjs,.cjs"
+				/>
+			</label>
+			<div class="toolbar">
+				<button
+					id="scanButton"
+					type="button"
+				>
+					Scan selected folder
+				</button>
+				<button
+					id="downloadButton"
+					type="button"
+					disabled
+				>
+					Download results.json
+				</button>
+			</div>
+		</section>
+
+		<div
+			id="status"
+			role="status"
+			aria-live="polite"
+		>
+			Choose a folder to begin.
+		</div>
+		<div
+			id="summary"
+			class="summary"
+		></div>
+		<section
+			id="results"
+			aria-label="Scan results"
+		></section>
+
+		<h2>Results object (JSON)</h2>
+		<p class="muted">
+			One object per JavaScript file. Each finding includes its matcher, line number, match, parsed details, and
+			whether the line is identified as commented or not commented.
+		</p>
+		<textarea
+			id="jsonOutput"
+			readonly
+			placeholder="Scan results will appear here…"
+		></textarea>
+	</body>
+</html>

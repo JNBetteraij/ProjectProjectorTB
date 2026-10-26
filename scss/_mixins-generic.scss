@@ -1,0 +1,92 @@
+/*#region Generic Mixins */
+
+@mixin backgroundImg($image,$height: 100%,$bgPos: center) {
+	background: url($image);
+	background-repeat: no-repeat;
+	background-position: $bgPos;
+	background-size: cover;
+	height: $height;
+}
+
+@mixin grid-stack($gap: 1em, $flow: row){
+	display: grid;
+	grid-auto-flow: row;
+	align-content: start;
+	gap: $gap;
+
+	@if $flow == row{
+		>*{
+			grid-column: 1 / -1;
+		}
+	}
+	@else{
+		>*{
+			grid-row: 1 / -1;
+		}
+	}
+	
+}
+
+/*#region 	Margin and Padding */
+@mixin margin-horizontal ($space, $other...) 
+{
+
+    @if length($other) == 0
+    {
+        margin-left: $space;
+        margin-right: $space;
+    }
+    @else 
+    {
+        margin-left: $space;
+        margin-right: nth($other, 1);
+    }
+}
+
+@mixin margin-vertical ($space, $other...) 
+{
+
+    @if length($other) == 0
+    {
+        margin-top: $space;
+        margin-bottom: $space;
+    }
+
+    @else
+    {
+        margin-top: $space;
+        margin-bottom: nth($other, 1);
+    }
+}
+
+@mixin padding-horizontal ($space, $other...) {
+
+    @if length($other) == 0
+    {
+        padding-left: $space;
+        padding-right: $space;
+    }
+
+    @else
+    {
+        padding-left: $space;
+        padding-right: nth($other, 1);
+    }
+}
+
+@mixin padding-vertical ($space, $other...) {
+
+    @if length($other) == 0
+    {
+        padding-top: $space;
+        padding-bottom: $space;
+    }
+
+    @else
+    {
+        padding-top: $space;
+        padding-bottom: nth($other, 1);
+    }
+}
+/*#endregion 	Margin and Padding */
+/*#endregion Generic Mixins */
