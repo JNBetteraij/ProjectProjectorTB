@@ -53,14 +53,17 @@ export class LineMatcher {
 		return findings;
 	}
 
-	scanLines(lines) {
+	scanLines(lines, { includeCommentedLines = true } = {}) {
 		const findings = [];
 		let inBlockComment = false;
 
 		lines.forEach((line, index) => {
 			const commentState = LineMatcher.getCommentStateForLine(line, inBlockComment);
 			inBlockComment = commentState.inBlockCommentAfter;
-			findings.push(...this.findMatches(line, index + 1, commentState));
+			const lineFindings = this.findMatches(line, index + 1, commentState);
+			findings.push(
+				...lineFindings.filter((finding) => includeCommentedLines || !finding.commentedOut),
+			);
 		});
 
 		return findings;

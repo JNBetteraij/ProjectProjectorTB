@@ -377,6 +377,21 @@ input[type=text] {
   padding: 0.65rem;
 }
 
+select {
+  box-sizing: border-box;
+  padding: 0.65rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 button {
   padding: 0.65rem 1rem;
   cursor: pointer;

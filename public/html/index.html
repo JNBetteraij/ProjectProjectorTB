@@ -19,8 +19,7 @@
 	<body>
 		<h1>JavaScript Folder Scanner</h1>
 		<p class="muted">
-			Select a project folder to scan its JavaScript files for imports and exports. You can also provide a search
-			pattern to find matches in both comments and code.
+			Select a project folder and choose what to search for in its JavaScript files.
 		</p>
 
 		<p class="warning">
@@ -40,12 +39,24 @@
 				/>
 			</label>
 			<label>
-				Optional comment/code search pattern (regular expression)
+				Search for
+				<select id="searchType">
+					<option value="imports-exports">Imports and exports</option>
+					<option value="console-statements">Console statements</option>
+					<option value="custom-regex">Custom regex</option>
+				</select>
+			</label>
+			<label id="patternField" hidden>
+				Custom regular expression
 				<input
 					id="patternInput"
 					type="text"
-					placeholder="Leave blank to scan imports and exports only"
+					placeholder="Enter a regular expression"
 				/>
+			</label>
+			<label class="checkbox-label">
+				<input id="includeCommentedLines" type="checkbox" />
+				Include commented-out lines
 			</label>
 			<label>
 				File extensions (comma-separated)

@@ -88,12 +88,12 @@ export class ResultsRenderer {
 		matcherTag.textContent = finding.matcher;
 		meta.append(matcherTag);
 
-		const commentTag = document.createElement("span");
-		commentTag.className = "tag";
-		commentTag.textContent = finding.commentedOut
-			? `Commented (${finding.commentType})`
-			: "Not commented";
-		meta.append(commentTag);
+		if (finding.commentedOut) {
+			const commentTag = document.createElement("span");
+			commentTag.className = "tag";
+			commentTag.textContent = `Commented (${finding.commentType})`;
+			meta.append(commentTag);
+		}
 
 		const code = document.createElement("pre");
 		code.textContent = finding.context;

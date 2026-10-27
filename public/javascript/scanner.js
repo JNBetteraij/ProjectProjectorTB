@@ -1,12 +1,16 @@
 import { FileRetriever } from "./scanner/FileRetriever.js";
-import { CommentMatcher } from "./scanner/CommentMatcher.js";
-import { ExportMatcher } from "./scanner/ExportMatcher.js";
-import { ImportMatcher } from "./scanner/ImportMatcher.js";
 import { ResultsRenderer } from "./scanner/ResultsRenderer.js";
+import {
+	DEFAULT_INCLUDE_COMMENTED_LINES,
+	MATCHER_FACTORIES_BY_OPTION,
+} from "./scanner/SearchConfiguration.js";
 import { Scanner } from "./scanner/Scanner.js";
 
 const folderInput = document.querySelector("#folderInput");
+const searchType = document.querySelector("#searchType");
+const patternField = document.querySelector("#patternField");
 const patternInput = document.querySelector("#patternInput");
+const includeCommentedLines = document.querySelector("#includeCommentedLines");
 const extensionsInput = document.querySelector("#extensionsInput");
 const scanButton = document.querySelector("#scanButton");
 const downloadButton = document.querySelector("#downloadButton");
@@ -22,6 +26,10 @@ const resultsRenderer = new ResultsRenderer({
 
 let scanResults = [];
 
+includeCommentedLines.checked = DEFAULT_INCLUDE_COMMENTED_LINES;
+searchType.addEventListener("change", () => {
+	patternField.hidden = searchType.value !== "custom-regex";
+});
 scanButton.addEventListener("click", scanSelectedFiles);
 downloadButton.addEventListener("click", () => resultsRenderer.download(scanResults));
 
@@ -32,14 +40,18 @@ async function scanSelectedFiles() {
 		return;
 	}
 
-	const matchers = [new ImportMatcher(), new ExportMatcher()];
-	if (patternInput.value.trim()) {
-		try {
-			matchers.push(new CommentMatcher(patternInput.value));
-		} catch (error) {
-			statusEl.textContent = `Invalid regular expression: ${error.message}`;
-			return;
-		}
+	const createMatchers = MATCHER_FACTORIES_BY_OPTION[searchType.value];
+	if (!createMatchers) {
+		statusEl.textContent = "Select a valid search type.";
+		return;
+	}
+
+	let matchers;
+	try {
+		matchers = createMatchers(patternInput.value);
+	} catch (error) {
+		statusEl.textContent = `Invalid regular expression: ${error.message}`;
+		return;
 	}
 
 	const extensions = extensionsInput.value
@@ -60,7 +72,9 @@ async function scanSelectedFiles() {
 	statusEl.textContent = `Scanning ${files.length} file(s)…`;
 
 	try {
-		scanResults = await scanner.scan(fileRetriever.retrieve(files), matchers);
+		scanResults = await scanner.scan(fileRetriever.retrieve(files), matchers, {
+			includeCommentedLines: includeCommentedLines.checked,
+		});
 		resultsRenderer.render(scanResults);
 
 		const findingCount = scanResults.reduce((sum, file) => sum + file.findingCount, 0);
