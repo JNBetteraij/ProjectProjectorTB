@@ -28,6 +28,8 @@ const graphRenderer = new GraphRenderer({
 	selectedNodeLayer: document.querySelector("#selectedGraphNodes"),
 	emptyState: document.querySelector("#emptyGraph"),
 	showLocalButton: document.querySelector("#showLocalButton"),
+	showDependenciesButton: document.querySelector("#showDependenciesButton"),
+	showDependantsButton: document.querySelector("#showDependantsButton"),
 	showFullGraphButton: document.querySelector("#showFullGraphButton"),
 });
 const scopeListRenderer = new ScopeListRenderer(document.querySelector("#scopeList"), {
@@ -45,6 +47,12 @@ document.querySelector("#showLocalButton").addEventListener("click", () => graph
 document
 	.querySelector("#showFullGraphButton")
 	.addEventListener("click", () => graphRenderer.showFullGraph());
+document
+	.querySelector("#showDependenciesButton")
+	.addEventListener("click", () => graphRenderer.showDependencies());
+document
+	.querySelector("#showDependantsButton")
+	.addEventListener("click", () => graphRenderer.showDependants());
 downloadButton.addEventListener("click", downloadJson);
 copyButton.addEventListener("click", copyJson);
 scanForm.addEventListener("submit", (event) => {

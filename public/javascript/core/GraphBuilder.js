@@ -11,15 +11,25 @@ export class GraphBuilder {
 
 		for (const importer of files) {
 			for (const imported of importer.imports) {
-				const targetPath = resolveImportPath(importer.path, imported.source, filesByPath);
-				imported.path = targetPath;
-				const exporter = targetPath ? filesByPath.get(targetPath) : null;
+				const resolution = resolveImportPath(importer.path, imported.source, filesByPath);
+				imported.path = resolution.path;
+				imported.status = resolution.status;
+			}
+		}
+		resolveReExports(files, filesByPath);
+
+		for (const importer of files) {
+			for (const imported of importer.imports) {
+				const exporter = imported.path ? filesByPath.get(imported.path) : null;
 				if (!exporter) continue;
 
 				for (const item of imported.items) {
 					const matchingExports =
 						item.name === "*"
-							? exporter.exports
+							? exporter.exports.filter(
+									(candidate) =>
+										!imported.reExport || item.localName || candidate.name !== "default",
+								)
 							: exporter.exports.filter((candidate) => candidate.name === item.name);
 					for (const exportedItem of matchingExports) {
 						item.type = item.name === "*" ? item.type : exportedItem.type;
@@ -61,10 +71,66 @@ export class GraphBuilder {
 	}
 }
 
+function resolveReExports(files, filesByPath) {
+	let changed = true;
+	while (changed) {
+		changed = false;
+		for (const importer of files) {
+			for (const imported of importer.imports) {
+				if (!imported.reExport || !imported.path) continue;
+				const exporter = filesByPath.get(imported.path);
+				if (!exporter) continue;
+
+				for (const item of imported.items) {
+					if (item.name === "*" && !item.localName) {
+						const remainingExports = importer.exports.filter((candidate) => candidate.name !== "*");
+						if (remainingExports.length !== importer.exports.length) {
+							importer.exports = remainingExports;
+							changed = true;
+						}
+						for (const exportedItem of exporter.exports) {
+							if (exportedItem.name === "default" || exportedItem.name === "*") continue;
+							const existingExport = importer.exports.find(
+								(candidate) => candidate.name === exportedItem.name,
+							);
+							if (existingExport) {
+								if (existingExport.type === "unknown" && exportedItem.type !== "unknown") {
+									existingExport.type = exportedItem.type;
+									changed = true;
+								}
+								continue;
+							}
+							importer.exports.push({
+								name: exportedItem.name,
+								type: exportedItem.type,
+								importedBy: [],
+							});
+							changed = true;
+						}
+						continue;
+					}
+					if (item.name === "*") continue;
+
+					const sourceExport = exporter.exports.find((candidate) => candidate.name === item.name);
+					const reExported = importer.exports.find(
+						(candidate) => candidate.name === (item.localName || item.name),
+					);
+					if (sourceExport && reExported && reExported.type !== sourceExport.type) {
+						reExported.type = sourceExport.type;
+						changed = true;
+					}
+				}
+			}
+		}
+	}
+}
+
 function resolveImportPath(importerPath, source, filesByPath) {
-	if (!source.startsWith(".")) return null;
-	const directory = importerPath.split("/").slice(0, -1);
-	const segments = [...directory, ...source.split("/")];
+	const normalizedSource = source.replaceAll("\\", "/");
+	const isAbsolute = normalizedSource.startsWith("/");
+	if (!isAbsolute && !normalizedSource.startsWith(".")) return { path: null, status: "external" };
+	const directory = isAbsolute ? [] : importerPath.split("/").slice(0, -1);
+	const segments = [...directory, ...normalizedSource.split("/")];
 	const normalized = [];
 	for (const segment of segments) {
 		if (!segment || segment === ".") continue;
@@ -78,7 +144,32 @@ function resolveImportPath(importerPath, source, filesByPath) {
 		for (const extension of EXTENSIONS) candidates.push(`${base}${extension}`);
 		for (const extension of EXTENSIONS) candidates.push(`${base}/index${extension}`);
 	}
-	return candidates.find((candidate) => filesByPath.has(candidate)) || null;
+	const exactMatch = candidates.find((candidate) => filesByPath.has(candidate));
+	if (exactMatch) return { path: exactMatch, status: "resolved" };
+	if (!isAbsolute) return { path: null, status: "unresolved" };
+
+	const suffixMatches = new Set();
+	for (const candidate of candidates) {
+		for (const filePath of filesByPath.keys()) {
+			if (pathsMatchBySuffix(filePath, candidate)) suffixMatches.add(filePath);
+		}
+	}
+	if (suffixMatches.size === 1) return { path: suffixMatches.values().next().value, status: "resolved" };
+	return {
+		path: null,
+		status: suffixMatches.size ? "ambiguous" : "unresolved",
+	};
+}
+
+function pathsMatchBySuffix(filePath, candidate) {
+	const fileSegments = filePath.replaceAll("\\", "/").split("/").filter(Boolean);
+	const candidateSegments = candidate.split("/").filter(Boolean);
+	return hasSuffix(fileSegments, candidateSegments) || hasSuffix(candidateSegments, fileSegments);
+}
+
+function hasSuffix(path, suffix) {
+	if (suffix.length > path.length) return false;
+	return suffix.every((segment, index) => segment === path[path.length - suffix.length + index]);
 }
 
 function groupFiles(files, edges) {

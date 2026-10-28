@@ -17,8 +17,6 @@ export class FileRetriever {
 	}
 
 	getProjectPath(file) {
-		const path = (file.webkitRelativePath || file.name).replaceAll("\\", "/");
-		const firstSeparator = path.indexOf("/");
-		return firstSeparator === -1 ? path : path.slice(firstSeparator + 1);
+		return (file.webkitRelativePath || file.name).replaceAll("\\", "/");
 	}
 }

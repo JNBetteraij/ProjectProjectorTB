@@ -1,4 +1,4 @@
-import { createFileLabel } from "./FileDisplay.js";
+import { createFileLabel, createImportStatusTag } from "./FileDisplay.js";
 
 export class ScopeListRenderer {
 	constructor(container, { onSelectFile, onFocusFile }) {
@@ -66,6 +66,8 @@ export class ScopeListRenderer {
 				"Imports",
 				file.imports.map((item) => ({
 					path: item.path || item.source,
+					source: item.source,
+					status: item.status,
 					detail: item.items.map((entry) => entry.name).join(", ") || "side-effect import",
 				})),
 			),
@@ -96,6 +98,8 @@ export class ScopeListRenderer {
 					entry.textContent = value;
 				} else {
 					entry.append(createFileLabel(value.path, "file-label file-list-label"));
+					const statusTag = createImportStatusTag(value.status, value.source);
+					if (statusTag) entry.append(statusTag);
 					if (value.detail) {
 						const detail = document.createElement("span");
 						detail.className = "file-list-detail";

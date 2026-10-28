@@ -99,6 +99,10 @@ function findDeclarationTypes(tokens) {
 		if (token.value === "class" && tokens[index + 1]?.type === "identifier") {
 			types.set(tokens[index + 1].value, "class");
 		}
+		if (token.value === "function") {
+			const name = getFunctionName(tokens, index);
+			if (name) types.set(name, "function");
+		}
 		if (["const", "let", "var"].includes(token.value)) {
 			for (const declaration of readVariableDeclarations(tokens, index)) {
 				types.set(declaration.name, declaration.type);
@@ -122,7 +126,7 @@ function readVariableDeclarations(tokens, keywordIndex) {
 		}
 		declarations.push({
 			name,
-			type: expressionStart === -1 ? "variable (primitive)" : inferValueType(tokens[expressionStart]),
+			type: expressionStart === -1 ? "variable" : inferValueType(tokens, expressionStart),
 		});
 
 		let depth = 0;
@@ -149,12 +153,43 @@ function readVariableDeclarations(tokens, keywordIndex) {
 	return declarations;
 }
 
-function inferValueType(token) {
-	if (!token) return "variable (primitive)";
-	if (token.value === "[") return "variable (array)";
-	if (token.value === "{") return "object (generic)";
-	if (token.value === "new") return "object (instance of class)";
-	return "variable (primitive)";
+function inferValueType(tokens, index) {
+	while (tokens[index]?.value === "(" && !isArrowFunction(tokens, index)) index++;
+	const token = tokens[index];
+	if (!token) return "variable";
+	if (token.value === "class") return "class";
+	if (token.value === "function" || isAsyncFunction(tokens, index) || isArrowFunction(tokens, index)) {
+		return "function";
+	}
+	return "variable";
+}
+
+function isAsyncFunction(tokens, index) {
+	return tokens[index]?.value === "async" && tokens[index + 1]?.value === "function";
+}
+
+function isArrowFunction(tokens, index) {
+	if (tokens[index]?.value === "async") index++;
+	if (tokens[index]?.type === "identifier" && tokens[index + 1]?.value === "=" && tokens[index + 2]?.value === ">") {
+		return true;
+	}
+	if (tokens[index]?.value !== "(") return false;
+
+	let depth = 0;
+	for (let cursor = index; cursor < tokens.length; cursor++) {
+		if (tokens[cursor].value === "(") depth++;
+		else if (tokens[cursor].value === ")") {
+			depth--;
+			if (depth === 0) return tokens[cursor + 1]?.value === "=" && tokens[cursor + 2]?.value === ">";
+		}
+	}
+	return false;
+}
+
+function getFunctionName(tokens, functionIndex) {
+	let cursor = functionIndex + 1;
+	if (tokens[cursor]?.value === "*") cursor++;
+	return tokens[cursor]?.type === "identifier" ? tokens[cursor].value : null;
 }
 
 function findImports(tokens, declarationTypes) {
@@ -218,7 +253,11 @@ function readImportItems(tokens, declarationTypes) {
 	while (index < tokens.length) {
 		if (tokens[index].value === "*" && tokens[index + 1]?.value === "as") {
 			const localName = tokens[index + 2]?.value;
-			if (localName) items.push({ name: "*", localName, type: null });
+			if (localName) items.push({ name: "*", localName, type: "namespace" });
+			break;
+		}
+		if (tokens[index].value === "*") {
+			items.push({ name: "*", localName: null, type: null });
 			break;
 		}
 		if (tokens[index].value === "{") {
@@ -250,13 +289,24 @@ function findExports(tokens, declarationTypes) {
 		let cursor = index + 1;
 		if (tokens[cursor]?.value === "default") {
 			cursor++;
-			const next = tokens[cursor];
-			if (next?.value === "class") {
-				exports.push({ name: "default", type: "class" });
-			} else if (next && !["function", "async"].includes(next.value)) {
+			const declarationIndex = tokens[cursor]?.value === "async" ? cursor + 1 : cursor;
+			if (tokens[declarationIndex]?.value === "class") {
+				const localName =
+					tokens[declarationIndex + 1]?.type === "identifier"
+						? tokens[declarationIndex + 1].value
+						: undefined;
+				exports.push({ name: "default", type: "class", ...(localName && { localName }) });
+			} else if (tokens[declarationIndex]?.value === "function") {
+				const localName = getFunctionName(tokens, declarationIndex);
+				exports.push({ name: "default", type: "function", ...(localName && { localName }) });
+			} else if (isArrowFunction(tokens, cursor)) {
+				exports.push({ name: "default", type: "function" });
+			} else if (tokens[cursor]) {
+				const localName = tokens[cursor].type === "identifier" ? tokens[cursor].value : undefined;
 				exports.push({
 					name: "default",
-					type: declarationTypes.get(next.value) || inferValueType(next),
+					type: declarationTypes.get(localName) || inferValueType(tokens, cursor),
+					...(localName && { localName }),
 				});
 			}
 			continue;
@@ -269,6 +319,12 @@ function findExports(tokens, declarationTypes) {
 		}
 		if (declarationKeyword === "class" && tokens[cursor + 1]?.type === "identifier") {
 			exports.push({ name: tokens[cursor + 1].value, type: "class" });
+			continue;
+		}
+		const functionIndex = declarationKeyword === "async" ? cursor + 1 : cursor;
+		if (tokens[functionIndex]?.value === "function") {
+			const name = getFunctionName(tokens, functionIndex);
+			if (name) exports.push({ name, type: "function" });
 			continue;
 		}
 		if (tokens[cursor]?.value === "{" ) {
@@ -286,6 +342,11 @@ function findExports(tokens, declarationTypes) {
 				}
 				exports.push({ name, type: declarationTypes.get(localName) || "unknown" });
 			}
+			continue;
+		}
+		if (tokens[cursor]?.value === "*" && tokens[cursor + 1]?.value === "as") {
+			const name = tokens[cursor + 2]?.value;
+			if (name) exports.push({ name, type: "namespace" });
 			continue;
 		}
 		if (tokens[cursor]?.value === "*" && tokens[cursor + 1]?.value === "from") {

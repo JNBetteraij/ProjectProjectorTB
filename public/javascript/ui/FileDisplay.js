@@ -25,3 +25,17 @@ export function createFileLabel(path, className = "file-label") {
 
 	return label;
 }
+
+export function createImportStatusTag(status, source) {
+	if (status !== "unresolved" && status !== "ambiguous") return null;
+
+	const tag = document.createElement("span");
+	tag.className = `import-status-tag import-status-${status}`;
+	tag.textContent = status === "ambiguous" ? "Ambiguous absolute import" : "Unresolved import";
+	tag.setAttribute("aria-label", tag.textContent);
+	tag.title =
+		status === "ambiguous"
+			? `Multiple scanned files could match ${source}`
+			: `No scanned file matches ${source}`;
+	return tag;
+}

@@ -1,4 +1,5 @@
-import { createFileLabel } from "./FileDisplay.js";
+import { createDetailsSection } from "./Details.js";
+import { createFileLabel, createImportStatusTag } from "./FileDisplay.js";
 
 const NODE_WIDTH = 300;
 const NODE_HEIGHT = 132;
@@ -16,6 +17,8 @@ export class GraphRenderer {
 		selectedNodeLayer,
 		emptyState,
 		showLocalButton,
+		showDependenciesButton,
+		showDependantsButton,
 		showFullGraphButton,
 	}) {
 		this.viewport = viewport;
@@ -26,6 +29,8 @@ export class GraphRenderer {
 		this.selectedNodeLayer = selectedNodeLayer;
 		this.emptyState = emptyState;
 		this.showLocalButton = showLocalButton;
+		this.showDependenciesButton = showDependenciesButton;
+		this.showDependantsButton = showDependantsButton;
 		this.showFullGraphButton = showFullGraphButton;
 		this.graph = null;
 		this.mainGraph = null;
@@ -45,7 +50,9 @@ export class GraphRenderer {
 		this.viewport.addEventListener("pointermove", (event) => this.movePointer(event));
 		this.viewport.addEventListener("pointerup", (event) => this.endPointer(event));
 		this.viewport.addEventListener("pointercancel", () => this.endPointer());
-		this.viewport.addEventListener("wheel", (event) => this.zoom(event), { passive: false });
+		this.viewport.addEventListener("wheel", (event) => this.zoom(event), {
+			passive: false,
+		});
 	}
 
 	render(graph) {
@@ -79,31 +86,50 @@ export class GraphRenderer {
 	showLocal() {
 		if (this.localMode || !this.mainGraph || this.selectedId === null) return;
 		this.mainViewState = {
-			positions: new Map(
-				[...this.positions].map(([id, position]) => [id, { ...position }]),
-			),
+			positions: new Map([...this.positions].map(([id, position]) => [id, { ...position }])),
 			pan: { ...this.pan },
 			selectedId: this.selectedId,
 			frontNodeId: this.frontNodeId,
 		};
 
-		const localFileIds = new Set([this.selectedId]);
-		for (const edge of this.mainGraph.edges) {
-			if (edge.sourceId === this.selectedId) localFileIds.add(edge.targetId);
-			if (edge.targetId === this.selectedId) localFileIds.add(edge.sourceId);
-		}
-		const files = this.mainGraph.files.filter((file) => localFileIds.has(file.id));
-		const edges = this.mainGraph.edges.filter(
-			(edge) => localFileIds.has(edge.sourceId) && localFileIds.has(edge.targetId),
-		);
 		this.localMode = true;
+		this.renderLocalGraph();
+	}
+
+	showDependencies() {
+		this.showTraversal("dependencies");
+	}
+
+	showDependants() {
+		this.showTraversal("dependants");
+	}
+
+	showTraversal(direction) {
+		if (!this.localMode || !this.mainGraph || this.selectedId === null) return;
+		const { files, edges } = getTraversalGraph(this.mainGraph, this.selectedId, direction);
+		this.renderLocalGraph(files, edges, direction === "dependencies" ? "Dependencies" : "Dependants");
+	}
+
+	renderLocalGraph(files = null, edges = null, title = "Local graph") {
+		const selectedId = this.selectedId;
+		const frontNodeId = this.frontNodeId;
+		if (!files || !edges) {
+			const fileIds = new Set([selectedId]);
+			for (const edge of this.mainGraph.edges) {
+				if (edge.sourceId === selectedId) fileIds.add(edge.targetId);
+				if (edge.targetId === selectedId) fileIds.add(edge.sourceId);
+			}
+			files = this.mainGraph.files.filter((file) => fileIds.has(file.id));
+			edges = this.mainGraph.edges.filter((edge) => fileIds.has(edge.sourceId) && fileIds.has(edge.targetId));
+		}
+
 		this.renderGraph({
 			files,
 			edges,
-			groups: [{ title: "Local graph", files, connected: edges.length > 0 }],
+			groups: [{ title, files, connected: edges.length > 0 }],
 		});
-		this.selectedId = this.mainViewState.selectedId;
-		this.frontNodeId = this.mainViewState.frontNodeId;
+		this.selectedId = selectedId;
+		this.frontNodeId = frontNodeId;
 		this.updateSelection();
 		this.fit();
 		this.updateLocalControls();
@@ -124,10 +150,13 @@ export class GraphRenderer {
 	}
 
 	updateLocalControls() {
-		if (!this.showLocalButton || !this.showFullGraphButton) return;
-		this.showLocalButton.hidden = this.localMode;
-		this.showLocalButton.disabled = this.selectedId === null || !this.graph?.files.length;
-		this.showFullGraphButton.hidden = !this.localMode;
+		if (this.showLocalButton) {
+			this.showLocalButton.hidden = this.localMode;
+			this.showLocalButton.disabled = this.selectedId === null || !this.graph?.files.length;
+		}
+		if (this.showDependenciesButton) this.showDependenciesButton.hidden = !this.localMode;
+		if (this.showDependantsButton) this.showDependantsButton.hidden = !this.localMode;
+		if (this.showFullGraphButton) this.showFullGraphButton.hidden = !this.localMode;
 	}
 
 	layout(graph) {
@@ -137,9 +166,7 @@ export class GraphRenderer {
 
 		for (const group of graph.groups) {
 			const groupIds = new Set(group.files.map((file) => file.id));
-			const groupEdges = graph.edges.filter(
-				(edge) => groupIds.has(edge.sourceId) && groupIds.has(edge.targetId),
-			);
+			const groupEdges = graph.edges.filter((edge) => groupIds.has(edge.sourceId) && groupIds.has(edge.targetId));
 			const componentTop = top;
 			let componentHeight;
 
@@ -189,8 +216,7 @@ export class GraphRenderer {
 						gridTop: componentTop + 70,
 					});
 				}
-				componentHeight =
-					Math.max(...[...filesByColumn.values()].map((files) => files.length)) * ROW_GAP;
+				componentHeight = Math.max(...[...filesByColumn.values()].map((files) => files.length)) * ROW_GAP;
 			} else {
 				const columnCount = Math.max(1, Math.min(5, Math.ceil(Math.sqrt(group.files.length))));
 				const rowCount = Math.ceil(group.files.length / columnCount);
@@ -231,8 +257,8 @@ export class GraphRenderer {
 				const rowGapTop = source.gridTop + row * ROW_GAP + NODE_HEIGHT;
 				return rowGapTop + (ROW_GAP - NODE_HEIGHT) * laneFraction;
 			}).reduce((closest, candidate) =>
-				Math.abs(candidate - sourceY) + Math.abs(candidate - targetY) <
-				Math.abs(closest - sourceY) + Math.abs(closest - targetY)
+				Math.abs(candidate - sourceY) + Math.abs(candidate - targetY)
+				< Math.abs(closest - sourceY) + Math.abs(closest - targetY)
 					? candidate
 					: closest,
 			);
@@ -244,11 +270,12 @@ export class GraphRenderer {
 
 	resizeWorld() {
 		const coordinates = [...this.positions.values()];
-		const routeXs = this.graph?.edges.flatMap((edge) => {
-			const source = this.positions.get(edge.sourceId);
-			const target = this.positions.get(edge.targetId);
-			return source && target ? getEdgeLaneXs(source, target) : [];
-		}) || [];
+		const routeXs =
+			this.graph?.edges.flatMap((edge) => {
+				const source = this.positions.get(edge.sourceId);
+				const target = this.positions.get(edge.targetId);
+				return source && target ? getEdgeLaneXs(source, target) : [];
+			}) || [];
 		const width = coordinates.length
 			? Math.max(...coordinates.map((point) => point.x + NODE_WIDTH), ...routeXs) + 300
 			: this.viewport.clientWidth;
@@ -315,10 +342,7 @@ export class GraphRenderer {
 	createNodeDetails(file) {
 		const details = [];
 		if (file.imports.length) {
-			const importedItemCount = file.imports.reduce(
-				(count, imported) => count + imported.items.length,
-				0,
-			);
+			const importedItemCount = file.imports.reduce((count, imported) => count + imported.items.length, 0);
 			details.push(this.createImportsDetails(file.imports, importedItemCount));
 		}
 		if (file.exports.length) {
@@ -328,27 +352,27 @@ export class GraphRenderer {
 	}
 
 	createCountedDetails(title, count) {
-		const details = document.createElement("details");
-		details.className = "node-detail-box";
+		const { details, summary, content } = createDetailsSection(title, {
+			details: "node-detail-box",
+			summary: "node-detail-summary",
+			content: "node-detail-content",
+		});
 		details.dataset.section = title.toLowerCase();
-		const summary = document.createElement("summary");
-		summary.className = "node-detail-summary";
 		const label = document.createElement("span");
 		label.textContent = title;
 		const badge = document.createElement("span");
 		badge.className = "node-detail-count";
 		badge.textContent = count;
-		summary.append(label, badge);
-		details.append(summary);
+		summary.replaceChildren(label, badge);
 		details.addEventListener("toggle", () => {
 			this.drawEdges(this.graph.edges);
 			this.resizeWorld();
 		});
-		return details;
+		return { details, content };
 	}
 
 	createImportsDetails(imports, importedItemCount) {
-		const details = this.createCountedDetails("Imports", importedItemCount);
+		const { details, content } = this.createCountedDetails("Imports", importedItemCount);
 		const list = document.createElement("ul");
 		for (const imported of imports) {
 			const sourcePath = imported.path || imported.source;
@@ -360,6 +384,8 @@ export class GraphRenderer {
 			} else {
 				item.append(createFileLabel(sourcePath, "file-label file-list-label"));
 			}
+			const statusTag = createImportStatusTag(imported.status, imported.source);
+			if (statusTag) item.append(statusTag);
 
 			if (imported.items.length) {
 				const names = document.createElement("ul");
@@ -379,27 +405,46 @@ export class GraphRenderer {
 			}
 			list.append(item);
 		}
-		details.append(list);
+		content.append(list);
 		return details;
 	}
 
 	createExportsDetails(exports) {
-		const details = this.createCountedDetails("Exports", exports.length);
-		const list = document.createElement("ul");
+		const { details, content } = this.createCountedDetails("Exports", exports.length);
+		const list = document.createElement("div");
+		list.className = "node-export-list";
 		for (const exported of exports) {
-			const item = document.createElement("li");
-			item.className = "node-export-item";
+			const {
+				details: item,
+				summary: nameHeader,
+				content: itemContent,
+			} = createDetailsSection("", {
+				details: "node-export-item",
+				summary: "node-detail-summary",
+				content: "node-export-content",
+			});
+			const exportItem = document.createElement("div");
+			exportItem.style.display = "flex";
+			exportItem.style.flexDirection = "column";
 			const name = document.createElement("span");
 			name.className = "node-export-name";
-			name.textContent = `${exported.name} (${exported.type})`;
-			item.append(name);
+			name.textContent = `${exported.name}`;
+			const type = document.createElement("span");
+			type.className = "export-type";
+			type.textContent = exported.type;
+
+			exportItem.append(name, type);
+			const count = document.createElement("span");
+			count.textContent = exported.importedBy.length;
+			count.className = "node-detail-count";
+			nameHeader.append(exportItem, count);
+
+			const importedBy = document.createElement("div");
+			importedBy.className = "node-export-imported-by";
+			importedBy.textContent = "Imported by";
+			itemContent.append(importedBy);
 
 			if (exported.importedBy.length) {
-				const importedBy = document.createElement("div");
-				importedBy.className = "node-export-imported-by";
-				const heading = document.createElement("span");
-				heading.textContent = "Imported by";
-				importedBy.append(heading);
 				const importers = document.createElement("ul");
 				for (const relationship of exported.importedBy) {
 					const importer = document.createElement("li");
@@ -416,12 +461,16 @@ export class GraphRenderer {
 					}
 					importers.append(importer);
 				}
-				importedBy.append(importers);
-				item.append(importedBy);
+				itemContent.append(importers);
+			} else {
+				const empty = document.createElement("p");
+				empty.className = "muted";
+				empty.textContent = "None";
+				itemContent.append(empty);
 			}
 			list.append(item);
 		}
-		details.append(list);
+		content.append(list);
 		return details;
 	}
 
@@ -473,20 +522,13 @@ export class GraphRenderer {
 			const target = this.positions.get(edge.targetId);
 			if (!source || !target) continue;
 
-			const [sourceX, targetX] = getEdgeLaneXs(
-				source,
-				target,
-			);
+			const [sourceX, targetX] = getEdgeLaneXs(source, target);
 			const sourceY = this.getNodeSectionY(edge.sourceId, "exports");
 			const targetY = this.getNodeSectionY(edge.targetId, "imports");
 			const columnDistance = Math.abs(target.x - source.x);
 			let edgePoints;
 			if (columnDistance === COLUMN_GAP) {
-				const laneX = getVerticalGutterLaneX(
-					source,
-					true,
-					targetY < sourceY ? "up" : "down",
-				);
+				const laneX = getVerticalGutterLaneX(source, true, targetY < sourceY ? "up" : "down");
 				edgePoints = [
 					{ x: sourceX, y: sourceY },
 					{ x: laneX, y: sourceY },
@@ -543,8 +585,8 @@ export class GraphRenderer {
 			const rowGapTop = source.gridTop + row * ROW_GAP + NODE_HEIGHT;
 			const candidate = rowGapTop + (ROW_GAP - NODE_HEIGHT) * laneFraction;
 			if (
-				Math.abs(candidate - sourceY) + Math.abs(candidate - targetY) <
-				Math.abs(closest - sourceY) + Math.abs(closest - targetY)
+				Math.abs(candidate - sourceY) + Math.abs(candidate - targetY)
+				< Math.abs(closest - sourceY) + Math.abs(closest - targetY)
 			) {
 				closest = candidate;
 			}
@@ -553,10 +595,7 @@ export class GraphRenderer {
 	}
 
 	startPan(event) {
-		if (
-			event.button !== 0 ||
-			event.target.closest(".graph-node, .local-graph-controls")
-		) {
+		if (event.button !== 0 || event.target.closest(".graph-node, .local-graph-controls")) {
 			return;
 		}
 		this.dragState = {
@@ -624,9 +663,9 @@ export class GraphRenderer {
 				[...this.positions.entries()]
 					.filter(
 						([id, point]) =>
-							id !== this.dragState.fileId &&
-							point.columnX === snappedX &&
-							point.gridTop === position.gridTop,
+							id !== this.dragState.fileId
+							&& point.columnX === snappedX
+							&& point.gridTop === position.gridTop,
 					)
 					.map(([, point]) => Math.round((point.y - point.gridTop) / ROW_GAP)),
 			);
@@ -725,10 +764,7 @@ export class GraphRenderer {
 		const worldX = (cursorX - this.pan.x) / this.pan.scale;
 		const worldY = (cursorY - this.pan.y) / this.pan.scale;
 		const minScale = this.getFitScale() / 3;
-		const nextScale = Math.max(
-			minScale,
-			Math.min(2.5, this.pan.scale * (event.deltaY < 0 ? 1.1 : 0.9)),
-		);
+		const nextScale = Math.max(minScale, Math.min(2.5, this.pan.scale * (event.deltaY < 0 ? 1.1 : 0.9)));
 		this.pan.scale = nextScale;
 		this.pan.x = cursorX - worldX * nextScale;
 		this.pan.y = cursorY - worldY * nextScale;
@@ -740,7 +776,11 @@ export class GraphRenderer {
 		const bounds = this.getGraphBounds();
 		const availableWidth = Math.max(200, this.viewport.clientWidth - 80);
 		const availableHeight = Math.max(200, this.viewport.clientHeight - 80);
-		return Math.min(1.25, availableWidth / (bounds.maxX - bounds.minX), availableHeight / (bounds.maxY - bounds.minY));
+		return Math.min(
+			1.25,
+			availableWidth / (bounds.maxX - bounds.minX),
+			availableHeight / (bounds.maxY - bounds.minY),
+		);
 	}
 
 	getGraphBounds() {
@@ -750,10 +790,7 @@ export class GraphRenderer {
 			const target = this.positions.get(edge.targetId);
 			return source && target ? getEdgeLaneXs(source, target) : [];
 		});
-		const horizontalCoordinates = [
-			...coordinates.flatMap((point) => [point.x, point.x + NODE_WIDTH]),
-			...routeXs,
-		];
+		const horizontalCoordinates = [...coordinates.flatMap((point) => [point.x, point.x + NODE_WIDTH]), ...routeXs];
 		return {
 			minX: Math.min(...horizontalCoordinates),
 			minY: Math.min(...coordinates.map((point) => point.y)),
@@ -782,6 +819,36 @@ export class GraphRenderer {
 	applyTransform() {
 		this.world.style.transform = `translate(${this.pan.x}px, ${this.pan.y}px) scale(${this.pan.scale})`;
 	}
+}
+
+function getTraversalGraph(graph, selectedId, direction) {
+	const edgesBySource = new Map(graph.files.map((file) => [file.id, []]));
+	const edgesByTarget = new Map(graph.files.map((file) => [file.id, []]));
+	for (const edge of graph.edges) {
+		edgesBySource.get(edge.sourceId)?.push(edge);
+		edgesByTarget.get(edge.targetId)?.push(edge);
+	}
+
+	const visited = new Set([selectedId]);
+	const includedEdges = new Set();
+	const queue = [selectedId];
+	for (let index = 0; index < queue.length; index++) {
+		const currentId = queue[index];
+		const edges =
+			direction === "dependencies" ? edgesByTarget.get(currentId) || [] : edgesBySource.get(currentId) || [];
+		for (const edge of edges) {
+			includedEdges.add(edge);
+			const neighborId = direction === "dependencies" ? edge.sourceId : edge.targetId;
+			if (visited.has(neighborId)) continue;
+			visited.add(neighborId);
+			queue.push(neighborId);
+		}
+	}
+
+	return {
+		files: graph.files.filter((file) => visited.has(file.id)),
+		edges: graph.edges.filter((edge) => includedEdges.has(edge)),
+	};
 }
 
 function getColumnRanks(files, edges) {
@@ -868,9 +935,7 @@ function getColumnRanks(files, edges) {
 		}
 	}
 	const leftmostColumn = Math.min(...componentColumns);
-	return new Map(
-		ids.map((id) => [id, componentColumns[componentById.get(id)] - leftmostColumn]),
-	);
+	return new Map(ids.map((id) => [id, componentColumns[componentById.get(id)] - leftmostColumn]));
 }
 
 function createRoundedOrthogonalPath(points) {
