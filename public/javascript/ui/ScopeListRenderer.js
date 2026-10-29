@@ -34,14 +34,14 @@ export class ScopeListRenderer {
 		const selectButton = document.createElement("button");
 		selectButton.className = "scope-file-name";
 		selectButton.type = "button";
-		selectButton.setAttribute("aria-label", `Select ${file.path} in graph`);
-		selectButton.append(createFileLabel(file.path));
+		selectButton.setAttribute("aria-label", `Select ${file.path.full} in graph`);
+		selectButton.append(createFileLabel(file.path.full));
 		selectButton.addEventListener("click", () => this.onSelectFile(file.id));
 		header.append(selectButton);
 		const focusButton = document.createElement("button");
 		focusButton.className = "scope-file-focus";
 		focusButton.type = "button";
-		focusButton.setAttribute("aria-label", `Go to ${file.path} in graph`);
+		focusButton.setAttribute("aria-label", `Go to ${file.path.full} in graph`);
 		focusButton.title = "Go to file in graph";
 		focusButton.textContent = "↗";
 		focusButton.addEventListener("click", () => this.onFocusFile(file.id));
@@ -72,7 +72,7 @@ export class ScopeListRenderer {
 				})),
 			),
 		);
-		const linkedScopes = file.linkedScopes.map((scope) => ({ path: scope.path }));
+		const linkedScopes = file.linkedScopes.map((scope) => ({ path: scope.path.full }));
 		details.append(this.renderItemList("Imported by", linkedScopes));
 
 		item.append(header, counts, details);

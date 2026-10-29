@@ -40,7 +40,6 @@ export class GraphRenderer {
 		this.nodeElements = new Map();
 		this.edgeElements = new Map();
 		this.routeYByPair = new Map();
-		this.filesByPath = new Map();
 		this.pan = { x: 0, y: 0, scale: 1 };
 		this.selectedId = null;
 		this.frontNodeId = null;
@@ -64,7 +63,6 @@ export class GraphRenderer {
 
 	renderGraph(graph, positions = null) {
 		this.graph = graph;
-		this.filesByPath = new Map(graph.files.map((file) => [file.path, file]));
 		this.selectedId = null;
 		this.frontNodeId = null;
 		this.emptyState.hidden = graph.files.length > 0;
@@ -195,7 +193,7 @@ export class GraphRenderer {
 						const firstMean = mean(firstParents);
 						const secondMean = mean(secondParents);
 						if (firstMean !== secondMean) return firstMean - secondMean;
-						return first.path.localeCompare(second.path);
+						return first.path.full.localeCompare(second.path.full);
 					});
 					files.forEach((file, row) => {
 						rowById.set(file.id, row);
@@ -319,14 +317,14 @@ export class GraphRenderer {
 			const title = document.createElement("button");
 			title.className = "node-title";
 			title.type = "button";
-			title.append(createFileLabel(file.path, "file-label node-file-label"));
+			title.append(createFileLabel(file.path.full, "file-label node-file-label"));
 			title.addEventListener("click", () => this.selectFile(file.id));
 
 			const dragHandle = document.createElement("button");
 			dragHandle.className = "node-drag-handle";
 			dragHandle.type = "button";
 			dragHandle.draggable = false;
-			dragHandle.setAttribute("aria-label", `Drag ${file.path}`);
+			dragHandle.setAttribute("aria-label", `Drag ${file.path.full}`);
 			dragHandle.title = "Drag to move; position snaps to a column";
 			dragHandle.textContent = "⠿";
 			dragHandle.addEventListener("pointerdown", (event) => this.startNodeDrag(event, file.id));
@@ -376,7 +374,7 @@ export class GraphRenderer {
 		const list = document.createElement("ul");
 		for (const imported of imports) {
 			const sourcePath = imported.path || imported.source;
-			const sourceFile = this.filesByPath.get(imported.path);
+			const sourceFile = imported.sourceFile;
 			const item = document.createElement("li");
 			item.className = "node-import-item";
 			if (sourceFile) {
@@ -448,17 +446,30 @@ export class GraphRenderer {
 				const importers = document.createElement("ul");
 				for (const relationship of exported.importedBy) {
 					const importer = document.createElement("li");
-					importer.append(this.createFileLink(relationship.file, relationship.file.path));
+					importer.append(this.createFileLink(relationship.file, relationship.file.path.full));
+
 					const importedAs = document.createElement("span");
 					importedAs.className = "node-export-imported-as";
-					importedAs.textContent = `as ${relationship.importedAs.join(", ")}`;
-					importer.append(importedAs);
+					//TODO handle import { * } as 'namespace' import
+					if (relationship.importedAs[0] !== exported.name) {
+						// console.log(exported.name);
+						// console.log(relationship.importedAs[0]);
+						// console.log(relationship.reExport);
+						importedAs.textContent = `as ${relationship.importedAs.join(", ")}`;
+						importer.append(importedAs);
+					}
 					if (relationship.reExport) {
 						const reExport = document.createElement("span");
 						reExport.className = "node-export-reexport";
 						reExport.textContent = "re-export";
 						importer.append(reExport);
 					}
+
+					const folderPath = document.createElement("span");
+					folderPath.className = "file-label-folder";
+					folderPath.textContent = relationship.file.path.folders;
+					importer.append(folderPath);
+
 					importers.append(importer);
 				}
 				itemContent.append(importers);
@@ -475,15 +486,23 @@ export class GraphRenderer {
 	}
 
 	createFileLink(file, path) {
-		const header = document.createElement("div");
-		header.className = "node-file-link";
+		const element = document.createElement("div");
+		element.className = "node-file-link";
 		const selectButton = document.createElement("button");
 		selectButton.className = "node-file-select";
 		selectButton.type = "button";
 		selectButton.setAttribute("aria-label", `Select ${path} in graph`);
-		selectButton.append(createFileLabel(path, "file-label file-list-label"));
+
+		const label = document.createElement("span");
+		label.className = "file-label file-list-label";
+		const fileName = document.createElement("span");
+		fileName.className = "file-label-name";
+		fileName.textContent = file.name;
+		label.append(fileName);
+		selectButton.append(label);
+
 		selectButton.addEventListener("click", () => this.selectFile(file.id));
-		header.append(selectButton);
+		element.append(selectButton);
 
 		const focusButton = document.createElement("button");
 		focusButton.className = "node-file-focus";
@@ -492,10 +511,10 @@ export class GraphRenderer {
 		focusButton.title = "Go to file in graph";
 		focusButton.textContent = "↗";
 		focusButton.addEventListener("click", () => this.focusFile(file.id));
-		header.append(focusButton);
-		return header;
-	}
+		element.append(focusButton);
 
+		return element;
+	}
 	getNodeHeight(fileId) {
 		return this.nodeElements.get(fileId)?.offsetHeight || NODE_HEIGHT;
 	}

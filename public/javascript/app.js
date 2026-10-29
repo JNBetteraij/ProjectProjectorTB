@@ -1,6 +1,9 @@
-import { FileRetriever } from "./core/FileRetriever.js";
+import { FileLoader } from "./core/FileLoader.js";
 import { GraphBuilder } from "./core/GraphBuilder.js";
-import { ProjectScanner } from "./core/ProjectScanner.js";
+import { Scanner } from "./core/Scanner.js";
+import { ExportSearch } from "./core/Searches/ExportSearch.js";
+import { ImportSearch } from "./core/Searches/ImportSearch.js";
+import { JavaScriptAnalyzer } from "./languages/javascript/JavaScriptAnalyzer.js";
 import { GraphRenderer } from "./ui/GraphRenderer.js";
 import { ScopeListRenderer } from "./ui/ScopeListRenderer.js";
 
@@ -8,6 +11,7 @@ const controlsDialog = document.querySelector("#controlsDialog");
 const scanForm = document.querySelector("#scanForm");
 const folderInput = document.querySelector("#folderInput");
 const extensionsInput = document.querySelector("#extensionsInput");
+const excludedFoldersInput = document.querySelector("#excludedFoldersInput");
 const scanButton = document.querySelector("#scanButton");
 const downloadButton = document.querySelector("#downloadButton");
 const copyButton = document.querySelector("#copyButton");
@@ -16,8 +20,10 @@ const closeControlsButton = document.querySelector("#closeControlsButton");
 const fitGraphButton = document.querySelector("#fitGraphButton");
 const statusElement = document.querySelector("#status");
 const projectSummary = document.querySelector("#projectSummary");
-const fileRetriever = new FileRetriever();
-const projectScanner = new ProjectScanner();
+
+const langaugeParser = new JavaScriptAnalyzer();
+const fileLoader = new FileLoader(langaugeParser.fileExtensions, []);
+const scanner = new Scanner([new ImportSearch(langaugeParser), new ExportSearch(langaugeParser)]);
 const graphBuilder = new GraphBuilder();
 const graphRenderer = new GraphRenderer({
 	viewport: document.querySelector("#graphViewport"),
@@ -43,16 +49,10 @@ controlsDialog.showModal();
 openControlsButton.addEventListener("click", () => controlsDialog.showModal());
 closeControlsButton.addEventListener("click", () => controlsDialog.close());
 fitGraphButton.addEventListener("click", () => graphRenderer.fit());
-document.querySelector("#showLocalButton").addEventListener("click", () => graphRenderer.showLocal());
-document
-	.querySelector("#showFullGraphButton")
-	.addEventListener("click", () => graphRenderer.showFullGraph());
-document
-	.querySelector("#showDependenciesButton")
-	.addEventListener("click", () => graphRenderer.showDependencies());
-document
-	.querySelector("#showDependantsButton")
-	.addEventListener("click", () => graphRenderer.showDependants());
+graphRenderer.showLocalButton.addEventListener("click", () => graphRenderer.showLocal());
+graphRenderer.showFullGraphButton.addEventListener("click", () => graphRenderer.showFullGraph());
+graphRenderer.showDependenciesButton.addEventListener("click", () => graphRenderer.showDependencies());
+graphRenderer.showDependantsButton.addEventListener("click", () => graphRenderer.showDependants());
 downloadButton.addEventListener("click", downloadJson);
 copyButton.addEventListener("click", copyJson);
 scanForm.addEventListener("submit", (event) => {
@@ -67,11 +67,23 @@ async function scanSelectedFiles() {
 		return;
 	}
 
+	const options = {};
+	const excludedFolders = excludedFoldersInput.value
+		.split(",")
+		.map((folderPath) => folderPath.trim())
+		.filter(Boolean);
+	if (excludedFolders.length > 0) {
+		options.excludedFolders = excludedFolders;
+	}
 	const extensions = extensionsInput.value
 		.split(",")
 		.map((extension) => extension.trim().toLowerCase())
 		.filter(Boolean);
-	const files = fileRetriever.getFiles(selectedFiles, extensions);
+	if (extensions.length > 0) {
+		options.extensions = extensions;
+	}
+	console.log();
+	const files = fileLoader.getFiles(selectedFiles, options);
 	if (!files.length) {
 		statusElement.textContent = "No files matched the configured extensions.";
 		return;
@@ -84,7 +96,7 @@ async function scanSelectedFiles() {
 	statusElement.textContent = `Scanning ${files.length} file(s)…`;
 
 	try {
-		const scannedFiles = await projectScanner.scan(fileRetriever.retrieve(files));
+		const scannedFiles = await scanner.scan(fileLoader.retrieve(files));
 		const graph = graphBuilder.build(scannedFiles);
 		scanResults = graph.files;
 		graphRenderer.render(graph);
@@ -103,21 +115,23 @@ async function scanSelectedFiles() {
 }
 
 function createJsonExport() {
-	return scanResults.map((file) => ({
-		id: file.id,
-		path: file.path,
-		name: file.name,
-		sizeBytes: file.sizeBytes,
-		linkedScopes: file.linkedScopes.map(({ id, path }) => ({ id, path })),
-		exports: file.exports.map(({ importedBy, ...exported }) => ({
-			...exported,
-			importedBy: importedBy.map(({ file: importer, ...relationship }) => ({
-				...relationship,
-				file: { id: importer.id, path: importer.path },
+	return scanResults.map((file) => {
+		return {
+			id: file.id,
+			path: file.path.full,
+			name: file.name,
+			sizeBytes: file.sizeBytes,
+			linkedScopes: file.linkedScopes.map(({ id, path }) => ({ id, path: path.full })),
+			exports: file.exports.map(({ importedBy, ...exported }) => ({
+				...exported,
+				importedBy: importedBy.map(({ file: importer, ...relationship }) => ({
+					...relationship,
+					file: { id: importer.id, path: importer.path.full },
+				})),
 			})),
-		})),
-		imports: file.imports,
-	}));
+			imports: file.imports.map(({ sourceFile, ...imported }) => imported),
+		};
+	});
 }
 
 function downloadJson() {

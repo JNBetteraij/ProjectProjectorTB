@@ -1,3 +1,6 @@
+import { ExportSearch } from "../../core/Searches/ExportSearch.js";
+import { ImportSearch } from "../../core/Searches/ImportSearch.js";
+
 const STATEMENT_KEYWORDS = new Set([
 	"async",
 	"class",
@@ -12,15 +15,87 @@ const STATEMENT_KEYWORDS = new Set([
 ]);
 
 export class JavaScriptAnalyzer {
+	constructor() {
+		console.log("creating this");
+		this.fileExtensions = Object.freeze([".js", ".jsx", ".mjs", ".cjs"]);
+		this.supportedSearches = new Map([
+			[ImportSearch, this.parseImports.bind(this)],
+			[ExportSearch, this.parseExports.bind(this)],
+		]);
+	}
+
 	analyze(source) {
 		const tokens = tokenize(source);
 		const declarationTypes = findDeclarationTypes(tokens);
+
+		console.log("calling this");
 
 		return {
 			imports: findImports(tokens, declarationTypes),
 			exports: findExports(tokens, declarationTypes),
 		};
 	}
+
+	parseImports(source) {
+		const tokens = tokenize(source);
+		return findImports(tokens, findDeclarationTypes(tokens));
+	}
+
+	parseExports(source) {
+		const tokens = tokenize(source);
+		return findExports(tokens, findDeclarationTypes(tokens));
+	}
+
+	resolveImportPath(importerPath, source, filePaths) {
+		return resolveImportPath(importerPath, source, new Set(filePaths), this.fileExtensions);
+	}
+}
+
+function resolveImportPath(importerPath, source, filePaths, extensions) {
+	const normalizedSource = source.replaceAll("\\", "/");
+	const isAbsolute = normalizedSource.startsWith("/");
+	if (!isAbsolute && !normalizedSource.startsWith(".")) return { path: null, status: "external" };
+	const directory = isAbsolute ? [] : importerPath.split("/").slice(0, -1);
+	const segments = [...directory, ...normalizedSource.split("/")];
+	const normalized = [];
+	for (const segment of segments) {
+		if (!segment || segment === ".") continue;
+		if (segment === "..") normalized.pop();
+		else normalized.push(segment);
+	}
+
+	const base = normalized.join("/");
+	const candidates = [base];
+	if (!/\.[^/]+$/.test(base)) {
+		for (const extension of extensions) candidates.push(`${base}${extension}`);
+		for (const extension of extensions) candidates.push(`${base}/index${extension}`);
+	}
+	const exactMatch = candidates.find((candidate) => filePaths.has(candidate));
+	if (exactMatch) return { path: exactMatch, status: "resolved" };
+	if (!isAbsolute) return { path: null, status: "unresolved" };
+
+	const suffixMatches = new Set();
+	for (const candidate of candidates) {
+		for (const filePath of filePaths) {
+			if (pathsMatchBySuffix(filePath, candidate)) suffixMatches.add(filePath);
+		}
+	}
+	if (suffixMatches.size === 1) return { path: suffixMatches.values().next().value, status: "resolved" };
+	return {
+		path: null,
+		status: suffixMatches.size ? "ambiguous" : "unresolved",
+	};
+}
+
+function pathsMatchBySuffix(filePath, candidate) {
+	const fileSegments = filePath.replaceAll("\\", "/").split("/").filter(Boolean);
+	const candidateSegments = candidate.split("/").filter(Boolean);
+	return hasSuffix(fileSegments, candidateSegments) || hasSuffix(candidateSegments, fileSegments);
+}
+
+function hasSuffix(path, suffix) {
+	if (suffix.length > path.length) return false;
+	return suffix.every((segment, index) => segment === path[path.length - suffix.length + index]);
 }
 
 function tokenize(source) {
@@ -136,11 +211,11 @@ function readVariableDeclarations(tokens, keywordIndex) {
 			else if (["]", "}", ")"].includes(value)) depth = Math.max(0, depth - 1);
 			if (depth === 0 && (value === ";" || value === ",")) break;
 			if (
-				depth === 0 &&
-				index > keywordIndex + 1 &&
-				tokens[index].line > tokens[index - 1].line &&
-				tokens[index].type === "identifier" &&
-				STATEMENT_KEYWORDS.has(value)
+				depth === 0
+				&& index > keywordIndex + 1
+				&& tokens[index].line > tokens[index - 1].line
+				&& tokens[index].type === "identifier"
+				&& STATEMENT_KEYWORDS.has(value)
 			) {
 				return declarations;
 			}
@@ -215,10 +290,10 @@ function findImports(tokens, declarationTypes) {
 		for (let cursor = index + 1; cursor < tokens.length; cursor++) {
 			if (tokens[cursor].value === ";") break;
 			if (
-				cursor > index + 1 &&
-				tokens[cursor].line > tokens[cursor - 1].line &&
-				tokens[cursor].type === "identifier" &&
-				STATEMENT_KEYWORDS.has(tokens[cursor].value)
+				cursor > index + 1
+				&& tokens[cursor].line > tokens[cursor - 1].line
+				&& tokens[cursor].type === "identifier"
+				&& STATEMENT_KEYWORDS.has(tokens[cursor].value)
 			) {
 				break;
 			}
@@ -245,7 +320,11 @@ function readImportItems(tokens, declarationTypes) {
 	let index = 0;
 
 	if (tokens[index]?.type === "identifier" && tokens[index].value !== "type") {
-		items.push({ name: "default", localName: tokens[index].value, type: declarationTypes.get(tokens[index].value) || null });
+		items.push({
+			name: "default",
+			localName: tokens[index].value,
+			type: declarationTypes.get(tokens[index].value) || null,
+		});
 		index++;
 		if (tokens[index]?.value === ",") index++;
 	}
@@ -327,7 +406,7 @@ function findExports(tokens, declarationTypes) {
 			if (name) exports.push({ name, type: "function" });
 			continue;
 		}
-		if (tokens[cursor]?.value === "{" ) {
+		if (tokens[cursor]?.value === "{") {
 			cursor++;
 			while (cursor < tokens.length && tokens[cursor].value !== "}") {
 				if (tokens[cursor].value === ",") {

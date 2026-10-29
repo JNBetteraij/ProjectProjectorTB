@@ -1,26 +1,15 @@
-const EXTENSIONS = [".js", ".jsx", ".mjs", ".cjs"];
-
 export class GraphBuilder {
 	build(files) {
-		const filesByPath = new Map(files.map((file) => [file.path, file]));
 		const edgesByPair = new Map();
 		for (const file of files) {
 			file.linkedScopes = [];
 			for (const exported of file.exports) exported.importedBy = [];
 		}
+		resolveReExports(files);
 
 		for (const importer of files) {
 			for (const imported of importer.imports) {
-				const resolution = resolveImportPath(importer.path, imported.source, filesByPath);
-				imported.path = resolution.path;
-				imported.status = resolution.status;
-			}
-		}
-		resolveReExports(files, filesByPath);
-
-		for (const importer of files) {
-			for (const imported of importer.imports) {
-				const exporter = imported.path ? filesByPath.get(imported.path) : null;
+				const exporter = imported.sourceFile;
 				if (!exporter) continue;
 
 				for (const item of imported.items) {
@@ -71,15 +60,14 @@ export class GraphBuilder {
 	}
 }
 
-function resolveReExports(files, filesByPath) {
+function resolveReExports(files) {
 	let changed = true;
 	while (changed) {
 		changed = false;
 		for (const importer of files) {
 			for (const imported of importer.imports) {
-				if (!imported.reExport || !imported.path) continue;
-				const exporter = filesByPath.get(imported.path);
-				if (!exporter) continue;
+				if (!imported.reExport || !imported.sourceFile) continue;
+				const exporter = imported.sourceFile;
 
 				for (const item of imported.items) {
 					if (item.name === "*" && !item.localName) {
@@ -123,53 +111,6 @@ function resolveReExports(files, filesByPath) {
 			}
 		}
 	}
-}
-
-function resolveImportPath(importerPath, source, filesByPath) {
-	const normalizedSource = source.replaceAll("\\", "/");
-	const isAbsolute = normalizedSource.startsWith("/");
-	if (!isAbsolute && !normalizedSource.startsWith(".")) return { path: null, status: "external" };
-	const directory = isAbsolute ? [] : importerPath.split("/").slice(0, -1);
-	const segments = [...directory, ...normalizedSource.split("/")];
-	const normalized = [];
-	for (const segment of segments) {
-		if (!segment || segment === ".") continue;
-		if (segment === "..") normalized.pop();
-		else normalized.push(segment);
-	}
-
-	const base = normalized.join("/");
-	const candidates = [base];
-	if (!/\.[^/]+$/.test(base)) {
-		for (const extension of EXTENSIONS) candidates.push(`${base}${extension}`);
-		for (const extension of EXTENSIONS) candidates.push(`${base}/index${extension}`);
-	}
-	const exactMatch = candidates.find((candidate) => filesByPath.has(candidate));
-	if (exactMatch) return { path: exactMatch, status: "resolved" };
-	if (!isAbsolute) return { path: null, status: "unresolved" };
-
-	const suffixMatches = new Set();
-	for (const candidate of candidates) {
-		for (const filePath of filesByPath.keys()) {
-			if (pathsMatchBySuffix(filePath, candidate)) suffixMatches.add(filePath);
-		}
-	}
-	if (suffixMatches.size === 1) return { path: suffixMatches.values().next().value, status: "resolved" };
-	return {
-		path: null,
-		status: suffixMatches.size ? "ambiguous" : "unresolved",
-	};
-}
-
-function pathsMatchBySuffix(filePath, candidate) {
-	const fileSegments = filePath.replaceAll("\\", "/").split("/").filter(Boolean);
-	const candidateSegments = candidate.split("/").filter(Boolean);
-	return hasSuffix(fileSegments, candidateSegments) || hasSuffix(candidateSegments, fileSegments);
-}
-
-function hasSuffix(path, suffix) {
-	if (suffix.length > path.length) return false;
-	return suffix.every((segment, index) => segment === path[path.length - suffix.length + index]);
 }
 
 function groupFiles(files, edges) {

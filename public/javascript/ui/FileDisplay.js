@@ -1,13 +1,16 @@
+import { Path } from "../core/Path.js";
+
 export function getFileDisplayParts(path) {
-	const parts = path.replaceAll("\\", "/").split("/");
+	const filePath = path instanceof Path ? path : new Path(path);
 	return {
-		name: parts.pop() || path,
-		folder: parts.join("/"),
+		name: filePath.file || filePath.full,
+		folder: filePath.folders,
 	};
 }
 
 export function createFileLabel(path, className = "file-label") {
 	const { name, folder } = getFileDisplayParts(path);
+
 	const label = document.createElement("span");
 	label.className = className;
 
@@ -34,8 +37,6 @@ export function createImportStatusTag(status, source) {
 	tag.textContent = status === "ambiguous" ? "Ambiguous absolute import" : "Unresolved import";
 	tag.setAttribute("aria-label", tag.textContent);
 	tag.title =
-		status === "ambiguous"
-			? `Multiple scanned files could match ${source}`
-			: `No scanned file matches ${source}`;
+		status === "ambiguous" ? `Multiple scanned files could match ${source}` : `No scanned file matches ${source}`;
 	return tag;
 }
