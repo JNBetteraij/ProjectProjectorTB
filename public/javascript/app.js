@@ -108,7 +108,8 @@ async function scanSelectedFiles() {
 		fitGraphButton.disabled = graph.files.length === 0;
 		controlsDialog.close();
 	} catch (error) {
-		statusElement.textContent = `Scan failed: ${error.message}`;
+		console.error(error);
+		statusElement.textContent = `Scan failed`;
 	} finally {
 		scanButton.disabled = false;
 	}

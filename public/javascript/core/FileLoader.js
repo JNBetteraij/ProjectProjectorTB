@@ -12,7 +12,6 @@ export class FileLoader {
 	getFiles(files, { extensions = this.extensions, excludedFolders = this.excludedFolders } = {}) {
 		return files.filter((file) => {
 			const name = file.name.toLowerCase();
-			console.log(file);
 			if (excludedFolders.some((folder) => file.webkitRelativePath.startsWith(folder))) return false;
 			return extensions.some((extension) => name.endsWith(extension));
 		});

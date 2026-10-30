@@ -19,8 +19,8 @@ export class JavaScriptAnalyzer {
 		console.log("creating this");
 		this.fileExtensions = Object.freeze([".js", ".jsx", ".mjs", ".cjs"]);
 		this.supportedSearches = new Map([
-			[ImportSearch, this.parseImports.bind(this)],
-			[ExportSearch, this.parseExports.bind(this)],
+			[ImportSearch, findImports],
+			[ExportSearch, findExports],
 		]);
 	}
 
@@ -28,22 +28,17 @@ export class JavaScriptAnalyzer {
 		const tokens = tokenize(source);
 		const declarationTypes = findDeclarationTypes(tokens);
 
-		console.log("calling this");
-
 		return {
 			imports: findImports(tokens, declarationTypes),
 			exports: findExports(tokens, declarationTypes),
 		};
 	}
 
-	parseImports(source) {
-		const tokens = tokenize(source);
-		return findImports(tokens, findDeclarationTypes(tokens));
-	}
+	parse(file, search) {
+		const find = this.supportedSearches.get(search.constructor);
 
-	parseExports(source) {
-		const tokens = tokenize(source);
-		return findExports(tokens, findDeclarationTypes(tokens));
+		const tokens = tokenize(file);
+		return find(tokens, findDeclarationTypes(tokens));
 	}
 
 	resolveImportPath(importerPath, source, filePaths) {
@@ -98,7 +93,10 @@ function hasSuffix(path, suffix) {
 	return suffix.every((segment, index) => segment === path[path.length - suffix.length + index]);
 }
 
-function tokenize(source) {
+function tokenize(file) {
+	if (file.tokens) return file.tokens;
+
+	const source = file.source;
 	const tokens = [];
 	let line = 1;
 	let index = 0;
@@ -162,6 +160,8 @@ function tokenize(source) {
 		index++;
 	}
 
+	//cache tokens on file
+	file.tokens = tokens;
 	return tokens;
 }
 

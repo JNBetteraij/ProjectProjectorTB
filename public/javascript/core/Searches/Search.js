@@ -4,8 +4,9 @@ export class Search {
 		if (!languageParserModule.supportedSearches.has(searchType)) {
 			throw new TypeError(`The language implementation does not support ${key} searches.`);
 		}
+		//TODO create languageParse base class
+		/** @type {import("../../languages/javascript/JavaScriptAnalyzer.js").JavaScriptAnalyzer} */
 		this.parserModule = languageParserModule;
-		this.parser = languageParserModule.supportedSearches.get(searchType);
 		this.resultKey = key;
 	}
 
@@ -14,6 +15,6 @@ export class Search {
 	}
 
 	scan(file) {
-		return this.parser(file.source);
+		return this.parserModule.parse(file, this);
 	}
 }

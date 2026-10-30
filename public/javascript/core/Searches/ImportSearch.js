@@ -10,7 +10,6 @@ export class ImportSearch extends Search {
 	}
 
 	search(file, files) {
-		console.trace();
 		const filesByPath = new Map(files.map((candidate) => [candidate.path.full, candidate]));
 		const filePaths = [...filesByPath.keys()];
 		return this.scan(file).map((imported) => {
