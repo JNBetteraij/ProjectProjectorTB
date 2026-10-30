@@ -1,946 +1,601 @@
-/* #region normalize */
-/*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
-/* Document
-   ========================================================================== */
-/**
- * 1. Correct the line height in all browsers.
- * 2. Prevent adjustments of font size after orientation changes in iOS.
- */
-html {
-  line-height: 1.15; /* 1 */
-  -webkit-text-size-adjust: 100%; /* 2 */
-}
-
-/* Sections
-   ========================================================================== */
-/**
- * Remove the margin in all browsers.
- */
-body {
-  margin: 0;
-}
-
-/**
- * Render the `main` element consistently in IE.
- */
-main {
-  display: block;
-}
-
-/**
- * Correct the font size and margin on `h1` elements within `section` and
- * `article` contexts in Chrome, Firefox, and Safari.
- */
-h1 {
-  font-size: 2em;
-  margin: 0.67em 0;
-}
-
-/* Grouping content
-   ========================================================================== */
-/**
- * 1. Add the correct box sizing in Firefox.
- * 2. Show the overflow in Edge and IE.
- */
-hr {
-  box-sizing: content-box; /* 1 */
-  height: 0; /* 1 */
-  overflow: visible; /* 2 */
-}
-
-/**
- * 1. Correct the inheritance and scaling of font size in all browsers.
- * 2. Correct the odd `em` font sizing in all browsers.
- */
-pre {
-  font-family: monospace, monospace; /* 1 */
-  font-size: 1em; /* 2 */
-}
-
-/* Text-level semantics
-   ========================================================================== */
-/**
- * Remove the gray background on active links in IE 10.
- */
-a {
-  background-color: transparent;
-}
-
-/**
- * 1. Remove the bottom border in Chrome 57-
- * 2. Add the correct text decoration in Chrome, Edge, IE, Opera, and Safari.
- */
-abbr[title] {
-  border-bottom: none; /* 1 */
-  text-decoration: underline; /* 2 */
-  text-decoration: underline dotted; /* 2 */
-}
-
-/**
- * Add the correct font weight in Chrome, Edge, and Safari.
- */
-b,
-strong {
-  font-weight: bolder;
-}
-
-/**
- * 1. Correct the inheritance and scaling of font size in all browsers.
- * 2. Correct the odd `em` font sizing in all browsers.
- */
-code,
-kbd,
-samp {
-  font-family: monospace, monospace; /* 1 */
-  font-size: 1em; /* 2 */
-}
-
-/**
- * Add the correct font size in all browsers.
- */
-small {
-  font-size: 80%;
-}
-
-/**
- * Prevent `sub` and `sup` elements from affecting the line height in
- * all browsers.
- */
-sub,
-sup {
-  font-size: 75%;
-  line-height: 0;
-  position: relative;
-  vertical-align: baseline;
-}
-
-sub {
-  bottom: -0.25em;
-}
-
-sup {
-  top: -0.5em;
-}
-
-/* Embedded content
-   ========================================================================== */
-/**
- * Remove the border on images inside links in IE 10.
- */
-img {
-  border-style: none;
-}
-
-/* Forms
-   ========================================================================== */
-/**
- * 1. Change the font styles in all browsers.
- * 2. Remove the margin in Firefox and Safari.
- */
-button,
-input,
-optgroup,
-select,
-textarea {
-  font-family: inherit; /* 1 */
-  font-size: 100%; /* 1 */
-  line-height: 1.15; /* 1 */
-  margin: 0; /* 2 */
-}
-
-/**
- * Show the overflow in IE.
- * 1. Show the overflow in Edge.
- */
-button,
-input {
-  /* 1 */
-  overflow: visible;
-}
-
-/**
- * Remove the inheritance of text transform in Edge, Firefox, and IE.
- * 1. Remove the inheritance of text transform in Firefox.
- */
-button,
-select {
-  /* 1 */
-  text-transform: none;
-}
-
-/**
- * Correct the inability to style clickable types in iOS and Safari.
- */
-button,
-[type=button],
-[type=reset],
-[type=submit] {
-  -webkit-appearance: button;
-}
-
-/**
- * Remove the inner border and padding in Firefox.
- */
-button::-moz-focus-inner,
-[type=button]::-moz-focus-inner,
-[type=reset]::-moz-focus-inner,
-[type=submit]::-moz-focus-inner {
-  border-style: none;
-  padding: 0;
-}
-
-/**
- * Restore the focus styles unset by the previous rule.
- */
-button:-moz-focusring,
-[type=button]:-moz-focusring,
-[type=reset]:-moz-focusring,
-[type=submit]:-moz-focusring {
-  outline: 1px dotted ButtonText;
-}
-
-/**
- * Correct the padding in Firefox.
- */
-fieldset {
-  padding: 0.35em 0.75em 0.625em;
-}
-
-/**
- * 1. Correct the text wrapping in Edge and IE.
- * 2. Correct the color inheritance from `fieldset` elements in IE.
- * 3. Remove the padding so developers are not caught out when they zero out
- *    `fieldset` elements in all browsers.
- */
-legend {
-  box-sizing: border-box; /* 1 */
-  color: inherit; /* 2 */
-  display: table; /* 1 */
-  max-width: 100%; /* 1 */
-  padding: 0; /* 3 */
-  white-space: normal; /* 1 */
-}
-
-/**
- * Add the correct vertical alignment in Chrome, Firefox, and Opera.
- */
-progress {
-  vertical-align: baseline;
-}
-
-/**
- * Remove the default vertical scrollbar in IE 10+.
- */
-textarea {
-  overflow: auto;
-}
-
-/**
- * 1. Add the correct box sizing in IE 10.
- * 2. Remove the padding in IE 10.
- */
-[type=checkbox],
-[type=radio] {
-  box-sizing: border-box; /* 1 */
-  padding: 0; /* 2 */
-}
-
-/**
- * Correct the cursor style of increment and decrement buttons in Chrome.
- */
-[type=number]::-webkit-inner-spin-button,
-[type=number]::-webkit-outer-spin-button {
-  height: auto;
-}
-
-/**
- * 1. Correct the odd appearance in Chrome and Safari.
- * 2. Correct the outline style in Safari.
- */
-[type=search] {
-  -webkit-appearance: textfield; /* 1 */
-  outline-offset: -2px; /* 2 */
-}
-
-/**
- * Remove the inner padding in Chrome and Safari on macOS.
- */
-[type=search]::-webkit-search-decoration {
-  -webkit-appearance: none;
-}
-
-/**
- * 1. Correct the inability to style clickable types in iOS and Safari.
- * 2. Change font properties to `inherit` in Safari.
- */
-::-webkit-file-upload-button {
-  -webkit-appearance: button; /* 1 */
-  font: inherit; /* 2 */
-}
-
-/* Interactive
-   ========================================================================== */
-/*
- * Add the correct display in Edge, IE 10+, and Firefox.
- */
-details {
-  display: block;
-}
-
-/*
- * Add the correct display in all browsers.
- */
-summary {
-  display: list-item;
-}
-
-/* Misc
-   ========================================================================== */
-/**
- * Add the correct display in IE 10+.
- */
-template {
-  display: none;
-}
-
-/**
- * Add the correct display in IE 10.
- */
-[hidden] {
-  display: none;
-}
-
-/* #endregion */
-/* #region default base */
-html {
-  box-sizing: border-box;
-}
-
-*,
-*:before,
-*:after {
-  box-sizing: inherit;
-}
-
-html,
-body,
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  padding: 0;
-  margin: 0;
-}
-
-img {
-  max-width: 100%;
-}
-
-header,
-section,
-footer {
-  margin-bottom: 1em;
-}
-
-/* #endregion */
-/*#region Generic Mixins */
-/*#region 	Margin and Padding */
-/*#endregion 	Margin and Padding */
-/*#endregion Generic Mixins */
-/*#region Website Specific Mixins */
-/*#endregion Website Specific Mixins */
 :root {
-  color-scheme: light dark;
-  font: 15px/1.45 system-ui, sans-serif;
-  --panel-bg: Canvas;
-  --panel-border: color-mix(in srgb, CanvasText 18%, transparent);
-  --selected: #a64dff;
-  --incoming: #e58b39;
-  --outgoing: #3488f5;
+	color-scheme: light dark;
+	font:
+		15px/1.45 system-ui,
+		sans-serif;
+	--panel-bg: Canvas;
+	--panel-border: color-mix(in srgb, CanvasText 18%, transparent);
+	--selected: #a64dff;
+	--incoming: #e58b39;
+	--outgoing: #3488f5;
 }
 
 * {
-  box-sizing: border-box;
+	box-sizing: border-box;
+	padding: 0;
+	margin: 0;
+}
+
+img {
+	max-width: 100%;
 }
 
 html,
 body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	overflow: hidden;
 }
 
 button,
 input {
-  font: inherit;
+	font: inherit;
 }
 
 button {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
+	padding: 0.5rem 0.75rem;
+	cursor: pointer;
 }
 
 button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+	cursor: not-allowed;
+	opacity: 0.55;
 }
 
 .workspace {
-  display: flex;
-  width: 100%;
-  height: 100%;
+	display: flex;
+	width: 100%;
+	height: 100%;
 }
 
 #scopePanel {
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  width: 340px;
-  min-width: 260px;
-  max-width: 55vw;
-  height: 100%;
-  resize: horizontal;
-  overflow: auto;
-  padding: 1rem;
-  border-right: 1px solid var(--panel-border);
-  background: var(--panel-bg);
-  z-index: 1;
+	display: flex;
+	flex: 0 0 auto;
+	flex-direction: column;
+	width: 340px;
+	min-width: 260px;
+	max-width: 55vw;
+	height: 100%;
+	resize: horizontal;
+	overflow: auto;
+	padding: 1rem;
+	border-right: 1px solid var(--panel-border);
+	background: var(--panel-bg);
+	z-index: 1;
 }
 
 .panel-header,
 .dialog-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.75rem;
 }
 
 .panel-header h1,
 .dialog-header h2 {
-  margin: 0 0 0.3rem;
-  font-size: 1.25rem;
+	margin: 0 0 0.3rem;
+	font-size: 1.25rem;
 }
 
 .muted {
-  opacity: 0.72;
+	opacity: 0.72;
 }
 
 .panel-actions,
 .toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 1rem 0 0;
 }
 
 #status {
-  margin: 0.75rem 0;
-  min-height: 1.5em;
-  overflow-wrap: anywhere;
+	margin: 0.75rem 0;
+	min-height: 1.5em;
+	overflow-wrap: anywhere;
 }
 
 .scope-list {
-  display: grid;
-  flex: 1 1 0;
-  align-content: start;
-  gap: 0.75rem;
-  min-height: 0;
-  overflow-y: auto;
+	display: grid;
+	flex: 1 1 0;
+	align-content: start;
+	gap: 0.75rem;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .scope-group {
-  border: 1px solid var(--panel-border);
-  border-radius: 0.45rem;
-  overflow: visible;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.45rem;
+	overflow: visible;
 }
 
 .scope-group > summary {
-  padding: 0.65rem;
-  cursor: pointer;
-  font-weight: 700;
-  background: color-mix(in srgb, CanvasText 7%, Canvas);
+	padding: 0.65rem;
+	cursor: pointer;
+	font-weight: 700;
+	background: color-mix(in srgb, CanvasText 7%, Canvas);
 }
 
 .scope-file {
-  padding: 0.55rem;
-  border-top: 1px solid var(--panel-border);
+	padding: 0.55rem;
+	border-top: 1px solid var(--panel-border);
 }
 
 .scope-file-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.5rem;
 }
 
 .scope-file-name {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
+	flex: 1;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	text-align: left;
 }
 
 .scope-file-name:hover .file-label-name {
-  text-decoration: underline;
+	text-decoration: underline;
 }
 
 .scope-file-focus {
-  flex: 0 0 auto;
-  padding: 0.1rem 0.4rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 0.3rem;
-  background: transparent;
-  line-height: 1.2;
+	flex: 0 0 auto;
+	padding: 0.1rem 0.4rem;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.3rem;
+	background: transparent;
+	line-height: 1.2;
 }
 
 .scope-file-counts {
-  margin: 0.2rem 0;
-  font-size: 0.78rem;
+	margin: 0.2rem 0;
+	font-size: 0.78rem;
 }
 
 .file-label {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  overflow-wrap: anywhere;
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	overflow-wrap: anywhere;
 }
 
 .file-label-name {
-  font-weight: 650;
+	font-weight: 650;
 }
 
 .file-label-folder {
-  font-size: 0.78em;
-  font-style: italic;
-  opacity: 0.72;
+	font-size: 0.78em;
+	font-style: italic;
+	opacity: 0.72;
 }
 
 .file-list-label {
-  display: inline-flex;
-  vertical-align: top;
+	display: inline-flex;
+	vertical-align: top;
 }
 
 .file-list-detail {
-  display: block;
-  font-size: 0.78em;
-  opacity: 0.75;
+	display: block;
+	font-size: 0.78em;
+	opacity: 0.75;
 }
 
 .import-status-tag {
-  display: inline-block;
-  margin-inline-start: 0.35rem;
-  padding: 0.08rem 0.4rem;
-  border-radius: 999px;
-  color: #ffffff;
-  font-size: 0.72em;
-  font-weight: 700;
-  line-height: 1.5;
-  vertical-align: middle;
-  white-space: nowrap;
+	display: inline-block;
+	margin-inline-start: 0.35rem;
+	padding: 0.08rem 0.4rem;
+	border-radius: 999px;
+	color: #ffffff;
+	font-size: 0.72em;
+	font-weight: 700;
+	line-height: 1.5;
+	vertical-align: middle;
+	white-space: nowrap;
 }
 
 .import-status-unresolved {
-  background: #b42318;
+	background: #b42318;
 }
 
 .import-status-ambiguous {
-  background: #6b3fa0;
+	background: #6b3fa0;
 }
 
 .scope-file-details {
-  padding-top: 0.3rem;
+	padding-top: 0.3rem;
 }
 
 .scope-file-details > summary {
-  cursor: pointer;
-  font-size: 0.85rem;
-  opacity: 0.78;
+	cursor: pointer;
+	font-size: 0.85rem;
+	opacity: 0.78;
 }
 
 .scope-detail-section {
-  margin-top: 0.6rem;
-  font-size: 0.85rem;
-  overflow-wrap: anywhere;
+	margin-top: 0.6rem;
+	font-size: 0.85rem;
+	overflow-wrap: anywhere;
 }
 
 .scope-detail-section h3 {
-  margin: 0;
-  font-size: 0.85rem;
+	margin: 0;
+	font-size: 0.85rem;
 }
 
 .scope-detail-section ul {
-  margin: 0.2rem 0 0;
-  padding-left: 1.25rem;
+	margin: 0.2rem 0 0;
+	padding-left: 1.25rem;
 }
 
 .graph-area {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
 }
 
 .graph-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-  min-height: 3.25rem;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--panel-border);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1rem;
+	min-height: 3.25rem;
+	padding: 0.5rem 1rem;
+	border-bottom: 1px solid var(--panel-border);
 }
 
 .graph-toolbar > span:first-child {
-  font-weight: 700;
+	font-weight: 700;
 }
 
 .graph-toolbar button {
-  margin-left: auto;
+	margin-left: auto;
 }
 
 .graph-viewport {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background-color: Canvas;
-  background-image: radial-gradient(color-mix(in srgb, CanvasText 18%, transparent) 1px, transparent 1px);
-  background-size: 22px 22px;
-  cursor: grab;
-  touch-action: none;
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	background-color: Canvas;
+	background-image: radial-gradient(color-mix(in srgb, CanvasText 18%, transparent) 1px, transparent 1px);
+	background-size: 22px 22px;
+	cursor: grab;
+	touch-action: none;
 }
 
 .graph-viewport:active {
-  cursor: grabbing;
+	cursor: grabbing;
 }
 
 .local-graph-controls {
-  position: absolute;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 6;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  max-width: calc(100% - 2rem);
-  gap: 0.5rem;
+	position: absolute;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 6;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	max-width: calc(100% - 2rem);
+	gap: 0.5rem;
 }
 
 .local-graph-controls[hidden] {
-  display: none;
+	display: none;
 }
 
 .graph-world {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  transform-origin: 0 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	transform-origin: 0 0;
 }
 
 .graph-edges,
 .selected-graph-edges,
 .graph-nodes,
 .selected-graph-nodes {
-  position: absolute;
-  top: 0;
-  left: 0;
-  overflow: visible;
+	position: absolute;
+	top: 0;
+	left: 0;
+	overflow: visible;
 }
 
 .graph-edges,
 .selected-graph-edges {
-  pointer-events: none;
+	pointer-events: none;
 }
 
 .selected-graph-edges,
 .selected-graph-nodes {
-  z-index: 2;
+	z-index: 2;
 }
 
 .selected-graph-nodes {
-  pointer-events: none;
+	pointer-events: none;
 }
 
 .graph-edges marker path {
-  fill: context-stroke;
+	fill: context-stroke;
 }
 
 .graph-edge {
-  fill: none;
-  stroke: #9aa8b7;
-  stroke-width: 2.5;
-  vector-effect: non-scaling-stroke;
+	fill: none;
+	stroke: #9aa8b7;
+	stroke-width: 2.5;
+	vector-effect: non-scaling-stroke;
 }
 
 .graph-edge.outgoing-edge {
-  stroke: var(--outgoing);
-  stroke-width: 3.5;
+	stroke: var(--outgoing);
+	stroke-width: 3.5;
 }
 
 .graph-edge.incoming-edge {
-  stroke: var(--incoming);
-  stroke-width: 3.5;
+	stroke: var(--incoming);
+	stroke-width: 3.5;
 }
 
 .graph-nodes {
-  pointer-events: none;
+	pointer-events: none;
 }
 
 .graph-node {
-  position: absolute;
-  width: 300px;
-  min-height: 132px;
-  padding: 0.7rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 0.6rem;
-  background: var(--panel-bg);
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.1333333333);
-  pointer-events: auto;
-  overflow-wrap: anywhere;
-  z-index: 1;
+	position: absolute;
+	width: 300px;
+	min-height: 132px;
+	padding: 0.7rem;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.6rem;
+	background: var(--panel-bg);
+	box-shadow: 0 3px 14px rgba(0, 0, 0, 0.1333333333);
+	pointer-events: auto;
+	overflow-wrap: anywhere;
+	z-index: 1;
 }
 
 .graph-node.selected {
-  z-index: 4;
-  outline: 3px solid var(--selected);
+	z-index: 4;
+	outline: 3px solid var(--selected);
 }
 
 .graph-node.incoming {
-  border-color: var(--incoming);
-  background: color-mix(in srgb, var(--incoming) 13%, Canvas);
-  z-index: 3;
+	border-color: var(--incoming);
+	background: color-mix(in srgb, var(--incoming) 13%, Canvas);
+	z-index: 3;
 }
 
 .graph-node.outgoing {
-  border-color: var(--outgoing);
-  background: color-mix(in srgb, var(--outgoing) 13%, Canvas);
-  z-index: 3;
+	border-color: var(--outgoing);
+	background: color-mix(in srgb, var(--outgoing) 13%, Canvas);
+	z-index: 3;
 }
 
 .graph-node.dragged {
-  z-index: 4;
+	z-index: 4;
 }
 
 .graph-node.interacted {
-  z-index: 5;
+	z-index: 5;
 }
 
 .node-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
 }
 
 .node-title {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  user-select: none;
+	flex: 1;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+	user-select: none;
 }
 
 .node-drag-handle {
-  flex: 0 0 auto;
-  padding: 0.1rem 0.35rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 0.3rem;
-  background: color-mix(in srgb, CanvasText 6%, Canvas);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
+	flex: 0 0 auto;
+	padding: 0.1rem 0.35rem;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.3rem;
+	background: color-mix(in srgb, CanvasText 6%, Canvas);
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
 }
 
 .node-drag-handle:active {
-  cursor: grabbing;
+	cursor: grabbing;
 }
 
 .node-detail-box {
-  margin-top: 0.45rem;
+	margin-top: 0.45rem;
 }
 .node-detail-box > summary {
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 650;
+	cursor: pointer;
+	font-size: 0.8rem;
+	font-weight: 650;
 }
 
 .node-detail-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
 }
 
 .node-detail-count {
-  display: inline-flex;
-  min-width: 1.4rem;
-  width: fit-content;
-  white-space: nowrap;
-  justify-content: center;
-  padding: 0.05rem 0.4rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.4;
+	display: inline-flex;
+	min-width: 1.4rem;
+	width: fit-content;
+	white-space: nowrap;
+	justify-content: center;
+	padding: 0.05rem 0.4rem;
+	border: 1px solid var(--panel-border);
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1.4;
 }
 
 .node-detail-content > ul {
-  margin: 0.3rem 0 0;
-  padding-left: 1.25rem;
+	margin: 0.3rem 0 0;
+	padding-left: 1.25rem;
 }
 
 .node-export-list {
-  margin-top: 0.3rem;
-  padding-left: 1.25rem;
+	margin-top: 0.3rem;
+	padding-left: 1.25rem;
 }
 
 .node-export-item > .node-export-content {
-  margin-top: 0.3rem;
+	margin-top: 0.3rem;
 }
 
 .node-export-content > ul {
-  margin: 0.1rem 0 0;
-  padding-left: 1.15rem;
+	margin: 0.1rem 0 0;
+	padding-left: 1.15rem;
 }
 
 .node-import-item,
 .node-export-item {
-  margin-bottom: 0.45rem;
+	margin-bottom: 0.45rem;
 }
 
 .node-imported-names {
-  margin-top: 0.2rem !important;
+	margin-top: 0.2rem !important;
 }
 
 .node-export-name {
-  font-weight: 600;
+	font-weight: 600;
 }
 
 .export-type {
-  font-size: 0.78em;
-  font-style: italic;
-  opacity: 0.72;
+	font-size: 0.78em;
+	font-style: italic;
+	opacity: 0.72;
 }
 
 .node-export-imported-by {
-  margin: 0.2rem 0 0 0.65rem;
-  font-size: 0.92em;
+	margin: 0.2rem 0 0 0.65rem;
+	font-size: 0.92em;
 }
 
 .node-export-imported-as,
 .node-export-reexport {
-  display: block;
-  font-size: 0.8em;
-  font-style: italic;
-  opacity: 0.75;
+	display: block;
+	font-size: 0.8em;
+	font-style: italic;
+	opacity: 0.75;
 }
 
 .node-file-link {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.4rem;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.4rem;
 }
 
 .node-file-select {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
+	flex: 1;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	text-align: left;
 }
 
 .node-file-select:hover .file-label-name {
-  text-decoration: underline;
+	text-decoration: underline;
 }
 
 .node-file-focus {
-  flex: 0 0 auto;
-  padding: 0.05rem 0.3rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 0.25rem;
-  background: transparent;
-  line-height: 1.1;
+	flex: 0 0 auto;
+	padding: 0.05rem 0.3rem;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.25rem;
+	background: transparent;
+	line-height: 1.1;
 }
 
-[draggable=true] {
-  -webkit-user-drag: none;
+[draggable="true"] {
+	-webkit-user-drag: none;
 }
 
 .empty-graph {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  max-width: 28rem;
-  padding: 1.2rem;
-  transform: translate(-50%, -50%);
-  border: 1px solid var(--panel-border);
-  border-radius: 0.6rem;
-  background: var(--panel-bg);
-  text-align: center;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	max-width: 28rem;
+	padding: 1.2rem;
+	transform: translate(-50%, -50%);
+	border: 1px solid var(--panel-border);
+	border-radius: 0.6rem;
+	background: var(--panel-bg);
+	text-align: center;
 }
 
 dialog {
-  width: min(38rem, 100vw - 2rem);
-  max-height: calc(100vh - 2rem);
-  padding: 1.25rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 0.75rem;
-  background: var(--panel-bg);
-  color: CanvasText;
-  box-shadow: 0 1rem 4rem rgba(0, 0, 0, 0.3333333333);
+	width: min(38rem, 100vw - 2rem);
+	max-height: calc(100vh - 2rem);
+	padding: 1.25rem;
+	margin: auto;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.75rem;
+	background: var(--panel-bg);
+	color: CanvasText;
+	box-shadow: 0 1rem 4rem rgba(0, 0, 0, 0.3333333333);
 }
 
 dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5333333333);
-  backdrop-filter: blur(2px);
+	background: rgba(0, 0, 0, 0.5333333333);
+	backdrop-filter: blur(2px);
 }
 
 .controls {
-  display: grid;
-  gap: 1rem;
+	display: grid;
+	gap: 1rem;
 }
 
 .controls label {
-  display: grid;
-  gap: 0.4rem;
-  font-weight: 600;
+	display: grid;
+	gap: 0.4rem;
+	font-weight: 600;
 }
 
-.controls input[type=text],
-.controls input[type=file] {
-  width: 100%;
-  padding: 0.65rem;
+.controls input[type="text"],
+.controls input[type="file"] {
+	width: 100%;
+	padding: 0.65rem;
 }
 
 .controls .toolbar {
-  margin: 0;
+	margin: 0;
 }
 
 @media (max-width: 760px) {
-  #scopePanel {
-    flex-basis: 42vw;
-    width: 42vw;
-    min-width: 210px;
-    padding: 0.65rem;
-  }
-  .panel-header {
-    flex-direction: column;
-  }
-  .graph-toolbar {
-    gap: 0.5rem;
-  }
+	#scopePanel {
+		flex-basis: 42vw;
+		width: 42vw;
+		min-width: 210px;
+		padding: 0.65rem;
+	}
+	.panel-header {
+		flex-direction: column;
+	}
+	.graph-toolbar {
+		gap: 0.5rem;
+	}
 }
