@@ -1,4 +1,4 @@
-export class LanguageParser {
+export class LanguageParserModule {
 	constructor() {
 		this.fileExtensions = [];
 		this.supportedSearches = new Map();

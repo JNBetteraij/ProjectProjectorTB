@@ -4,7 +4,7 @@ export class Search {
 		if (!languageParserModule.supportedSearches.has(searchType)) {
 			throw new TypeError(`The language implementation does not support ${key} searches.`);
 		}
-		/** @type {import("../LanguageParser.js").LanguageParser} */
+		/** @type {import("../../languageModules/LanguageParserModule.js").LanguageParserModule} */
 		this.parserModule = languageParserModule;
 		this.resultKey = key;
 	}

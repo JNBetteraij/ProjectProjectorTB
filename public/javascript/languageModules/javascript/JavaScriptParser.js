@@ -14,7 +14,7 @@ const STATEMENT_KEYWORDS = new Set([
 	"var",
 ]);
 
-export class JavaScriptAnalyzer {
+export class JavaScriptParser {
 	constructor() {
 		super();		
 		this.fileExtensions = Object.freeze([".js", ".jsx", ".mjs", ".cjs"]);
