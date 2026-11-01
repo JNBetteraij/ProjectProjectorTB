@@ -1,38 +1,32 @@
 import { ExportSearch } from "../../core/Searches/ExportSearch.js";
 import { ImportSearch } from "../../core/Searches/ImportSearch.js";
+import { LanguageParserModule } from "../LanguageParserModule.js";
 
-const STATEMENT_KEYWORDS = new Set([
-	"async",
-	"class",
-	"const",
-	"export",
-	"function",
-	"if",
-	"import",
-	"let",
-	"return",
-	"var",
-]);
+/** @typedef {abstract new (...args: any[]) => import("../../core/Searches/Search.js").Search} SearchClass */
 
-export class JavaScriptParser {
-	constructor() {
-		super();		
-		this.fileExtensions = Object.freeze([".js", ".jsx", ".mjs", ".cjs"]);
-		this.supportedSearches = new Map([
-			[ImportSearch, findImports],
-			[ExportSearch, findExports],
-		]);
-	}
+export class JavaScriptParser extends LanguageParserModule {
+	/** @type {readonly string[]} */
+	static fileExtensions = Object.freeze([".js", ".jsx", ".mjs", ".cjs"]);
 
-	analyze(source) {
-		const tokens = tokenize(source);
-		const declarationTypes = findDeclarationTypes(tokens);
+	/** @type {ReadonlyMap<SearchClass, Function>} */
+	static supportedSearches = new Map([
+		[ImportSearch, findImports],
+		[ExportSearch, findExports],
+	]);
 
-		return {
-			imports: findImports(tokens, declarationTypes),
-			exports: findExports(tokens, declarationTypes),
-		};
-	}
+	/** @type {Set<string>} */
+	static statementKeywords = new Set([
+		"import",
+		"export",
+		"class",
+		"function",
+		"async",
+		"let",
+		"var",
+		"if",
+		"const",
+		"return",
+	]);
 
 	parse(file, search) {
 		const find = this.supportedSearches.get(search.constructor);
@@ -215,7 +209,7 @@ function readVariableDeclarations(tokens, keywordIndex) {
 				&& index > keywordIndex + 1
 				&& tokens[index].line > tokens[index - 1].line
 				&& tokens[index].type === "identifier"
-				&& STATEMENT_KEYWORDS.has(value)
+				&& JavaScriptParser.statementKeywords.has(value)
 			) {
 				return declarations;
 			}
@@ -293,7 +287,7 @@ function findImports(tokens, declarationTypes) {
 				cursor > index + 1
 				&& tokens[cursor].line > tokens[cursor - 1].line
 				&& tokens[cursor].type === "identifier"
-				&& STATEMENT_KEYWORDS.has(tokens[cursor].value)
+				&& JavaScriptParser.statementKeywords.has(tokens[cursor].value)
 			) {
 				break;
 			}

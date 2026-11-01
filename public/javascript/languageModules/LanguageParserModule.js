@@ -1,7 +1,12 @@
 export class LanguageParserModule {
-	constructor() {
-		this.fileExtensions = [];
-		this.supportedSearches = new Map();
+	/** @returns {readonly string[]} */
+	get fileExtensions() {
+		return this.constructor.fileExtensions;
+	}
+
+	/** @returns {Readonly Map<Function, Function>} */
+	get supportedSearches() {
+		return this.constructor.supportedSearches;
 	}
 
 	parse() {
