@@ -16,7 +16,7 @@ const STATEMENT_KEYWORDS = new Set([
 
 export class JavaScriptAnalyzer {
 	constructor() {
-		console.log("creating this");
+		super();		
 		this.fileExtensions = Object.freeze([".js", ".jsx", ".mjs", ".cjs"]);
 		this.supportedSearches = new Map([
 			[ImportSearch, findImports],
