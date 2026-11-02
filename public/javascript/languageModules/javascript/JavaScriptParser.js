@@ -1,6 +1,7 @@
 import { ExportSearch } from "../../core/Searches/ExportSearch.js";
 import { ImportSearch } from "../../core/Searches/ImportSearch.js";
 import { LanguageParserModule } from "../LanguageParserModule.js";
+import { brackets, closingBrackets, openingBrackets, operators, operatorStarts, separators } from "./definitions.js";
 
 /** @typedef {new (...args: any[]) => import("../../core/Searches/Search.js").Search} SearchClass */
 
@@ -95,60 +96,301 @@ function hasSuffix(path, suffix) {
 }
 
 function tokenize(file) {
-	if (file.tokens) return file.tokens;
-
 	const source = file.source;
 	const tokens = [];
 	let line = 1;
 	let index = 0;
 
+	const openBrackets = [];
+	const templateStack = [];
+
 	while (index < source.length) {
 		const character = source[index];
 		const next = source[index + 1];
 
-		if (character === "\n") {
-			line++;
-			index++;
+		// Handle template literal text
+		const template = templateStack.at(-1);
+		if (template && !template.inExpression) {
+			const textStart = index;
+			const textLine = line;
+
+			// Read template text
+			while (index < source.length) {
+				const current = source[index];
+
+				// Handle escaped characters
+				if (current === "\\") {
+					index++;
+
+					if (index < source.length) {
+						if (consumeLineBreak()) {
+							// Line break consumed
+						} else {
+							index++;
+						}
+					}
+
+					continue;
+				}
+
+				// Stop at expression or closing backtick
+				if (current === "`" || (current === "$" && source[index + 1] === "{")) {
+					break;
+				}
+
+				// Handle line breaks
+				if (consumeLineBreak()) {
+					continue;
+				}
+
+				index++;
+			}
+
+			// Add template text token
+			if (index > textStart) {
+				tokens.push({
+					type: "template-text",
+					value: source.slice(textStart, index),
+					line: textLine,
+				});
+			}
+
+			// Handle closing backtick
+			if (source[index] === "`") {
+				tokens.push({
+					type: "template-end",
+					value: "`",
+					line,
+				});
+
+				index++;
+				templateStack.pop();
+				continue;
+			}
+
+			// Handle expression start
+			if (source[index] === "$" && source[index + 1] === "{") {
+				tokens.push({
+					type: "template-expression-start",
+					value: "${",
+					line,
+				});
+
+				index += 2;
+
+				template.inExpression = true;
+				template.braceDepth = 0;
+
+				continue;
+			}
+
+			// End of source
+			break;
+		}
+
+		// handle line breaks
+		if (consumeLineBreak()) {
 			continue;
 		}
+
+		// handle whitespace characters
 		if (/\s/.test(character)) {
 			index++;
 			continue;
 		}
+
+		// Handle line comments
 		if (character === "/" && next === "/") {
+			const commentLine = line;
+			const commentStart = index;
+
 			index += 2;
-			while (index < source.length && source[index] !== "\n") index++;
-			continue;
-		}
-		if (character === "/" && next === "*") {
-			index += 2;
-			while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) {
-				if (source[index] === "\n") line++;
+
+			while (index < source.length && !isLineBreak(source[index])) {
 				index++;
 			}
-			index = Math.min(index + 2, source.length);
+
+			tokens.push({
+				type: "comment",
+				value: source.slice(commentStart, index),
+				line: commentLine,
+			});
+
 			continue;
 		}
-		if (character === "'" || character === '"' || character === "`") {
-			const tokenLine = line;
-			const quote = character;
-			let value = "";
-			index++;
-			while (index < source.length && source[index] !== quote) {
-				if (source[index] === "\\") {
-					value += source[index + 1] || "";
-					if (source[index + 1] === "\n") line++;
+
+		// Handle block comments
+		if (character === "/" && next === "*") {
+			const commentLine = line;
+			const commentStart = index;
+
+			index += 2;
+			let closed = false;
+
+			while (index < source.length) {
+				if (source[index] === "*" && source[index + 1] === "/") {
 					index += 2;
+					closed = true;
+					break;
+				}
+
+				if (!consumeLineBreak()) {
+					index++;
+				}
+			}
+
+			const token = {
+				type: "block-comment",
+				value: source.slice(commentStart, index),
+				line: commentLine,
+			};
+
+			if (!closed) {
+				token.error = "Unterminated block comment";
+			}
+
+			tokens.push(token);
+			continue;
+		}
+
+		// Handle template literal start
+		if (character === "`") {
+			const tokenIndex = tokens.length;
+
+			tokens.push({
+				type: "template-start",
+				value: "`",
+				line,
+			});
+
+			templateStack.push({
+				inExpression: false,
+				braceDepth: 0,
+				startTokenIndex: tokenIndex,
+			});
+
+			index++;
+			continue;
+		}
+
+		// handle single and double-quoted strings
+		if (character === "'" || character === '"') {
+			const quote = character;
+			const tokenLine = line;
+
+			index++;
+			let value = "";
+			let closed = false;
+			let error = null;
+
+			while (index < source.length) {
+				const current = source[index];
+
+				// Handle escaped characters
+				if (current === "\\") {
+					value += current;
+					index++;
+
+					if (index >= source.length) break;
+
+					const escaped = source[index];
+
+					// Handle escaped line breaks
+					if (isLineBreak(escaped)) {
+						value += escaped;
+						line++;
+
+						if (escaped === "\r" && source[index + 1] === "\n") {
+							value += "\n";
+							index++;
+						}
+					} else {
+						value += escaped;
+					}
+
+					index++;
 					continue;
 				}
-				if (source[index] === "\n") line++;
-				value += source[index];
+
+				// Handle closing quote
+				if (current === quote) {
+					closed = true;
+					index++;
+					break;
+				}
+
+				// Handle invalid literal line breaks
+				if (isLineBreak(current)) {
+					error = "Unescaped line break in string";
+					break;
+				}
+
+				value += current;
 				index++;
 			}
-			if (index < source.length) index++;
-			tokens.push({ type: "string", value, line: tokenLine });
+
+			const token = {
+				type: "string",
+				value,
+				line: tokenLine,
+			};
+
+			if (error) {
+				token.error = error;
+			} else if (!closed) {
+				token.error = "Unterminated string";
+			}
+
+			tokens.push(token);
 			continue;
 		}
+
+		// handle numbers
+		if (/[0-9]/.test(character)) {
+			const tokenLine = line;
+			const start = index;
+
+			// Integer / decimal part
+			while (index < source.length && /[0-9]/.test(source[index])) {
+				index++;
+			}
+
+			// Decimal part
+			if (source[index] === "." && /[0-9]/.test(source[index + 1])) {
+				index++;
+
+				while (index < source.length && /[0-9]/.test(source[index])) {
+					index++;
+				}
+			}
+
+			// Exponent: 1e10, 2E-3, etc.
+			if (source[index] === "e" || source[index] === "E") {
+				let exponentIndex = index + 1;
+
+				if (source[exponentIndex] === "+" || source[exponentIndex] === "-") {
+					exponentIndex++;
+				}
+
+				if (/[0-9]/.test(source[exponentIndex])) {
+					index = exponentIndex;
+
+					while (index < source.length && /[0-9]/.test(source[index])) {
+						index++;
+					}
+				}
+			}
+
+			tokens.push({
+				type: "number",
+				value: source.slice(start, index),
+				line: tokenLine,
+			});
+
+			continue;
+		}
+
+		// handle identifiers
 		if (/[A-Za-z_$]/.test(character)) {
 			const tokenLine = line;
 			const start = index++;
@@ -157,13 +399,151 @@ function tokenize(file) {
 			continue;
 		}
 
-		tokens.push({ type: "punctuation", value: character, line });
+		// Handle template expression
+		const activeTemplate = templateStack.at(-1);
+
+		if (activeTemplate?.inExpression) {
+			// Handle nested opening curly braces
+			if (character === "{") {
+				activeTemplate.braceDepth++;
+			}
+
+			// Handle closing curly braces
+			else if (character === "}") {
+				// End of template expression
+				if (activeTemplate.braceDepth === 0) {
+					tokens.push({
+						type: "template-expression-end",
+						value: "}",
+						line,
+					});
+
+					activeTemplate.inExpression = false;
+					index++;
+					continue;
+				}
+
+				// Closing a nested curly brace
+				activeTemplate.braceDepth--;
+			}
+		}
+
+		//handle brackets
+		if (brackets.has(character)) {
+			const tokenIndex = tokens.length;
+
+			const token = {
+				type: "bracket",
+				value: character,
+				line,
+			};
+
+			tokens.push(token);
+			index++;
+
+			//handle opening brackets
+			if (openingBrackets.has(character)) {
+				openBrackets.push(tokenIndex);
+				continue;
+			}
+
+			//handle closing brackets
+			const startingBracketIndex = openBrackets.at(-1);
+
+			if (startingBracketIndex === undefined) {
+				token.error = "Unexpected closing bracket";
+				continue;
+			}
+
+			const startingBracket = tokens[startingBracketIndex];
+			const expectedBracket = closingBrackets[startingBracket.value];
+			if (character !== expectedBracket) {
+				token.error = `Mismatched closing bracket. Expected "${expectedBracket}" but encountered "${character}"`;
+				continue;
+			}
+
+			//pair opening and closing brackets
+			token.closes = startingBracketIndex;
+			startingBracket.closedBy = tokenIndex;
+
+			openBrackets.pop();
+			continue;
+		}
+
+		// handle seperators
+		if (separators.has(character)) {
+			tokens.push({
+				type: "separator",
+				value: character,
+				line,
+			});
+
+			index++;
+			continue;
+		}
+
+		// handles operators
+		if (operatorStarts.has(character)) {
+			const tokenLine = line;
+			let matchedOperator = null;
+
+			for (const operator of operators) {
+				if (!source.startsWith(operator.value, index)) continue;
+
+				if (operator.validate && !operator.validate(source, index)) {
+					continue;
+				}
+
+				let value = operator.value;
+
+				// handles assignment operator
+				const isAssignment = operator.assignable && source[index + operator.length] === "=";
+
+				if (isAssignment) {
+					value += "=";
+				}
+
+				matchedOperator = {
+					type: "operator",
+					value,
+					category: isAssignment ? "assignment" : operator.category,
+					name: isAssignment ? `${operator.name}-assignment` : operator.name,
+					line: tokenLine,
+				};
+
+				break;
+			}
+
+			if (matchedOperator) {
+				tokens.push(matchedOperator);
+				index += matchedOperator.value.length;
+				continue;
+			}
+		}
+
+		// handles other
+		tokens.push({
+			type: "other",
+			value: character,
+			line,
+		});
 		index++;
 	}
-
-	//cache tokens on file
-	file.tokens = tokens;
 	return tokens;
+
+	function consumeLineBreak() {
+		const character = source[index];
+		if (!isLineBreak(source[index])) return false;
+
+		line++;
+		index++;
+		if (character === "\r" && source[index] === "\n") index++;
+		return true;
+	}
+
+	function isLineBreak(character) {
+		return ["\n", "\r", "\u2028", "\u2029"].includes(character);
+	}
 }
 
 function findDeclarationTypes(tokens) {
@@ -246,7 +626,7 @@ function isAsyncFunction(tokens, index) {
 
 function isArrowFunction(tokens, index) {
 	if (tokens[index]?.value === "async") index++;
-	if (tokens[index]?.type === "identifier" && tokens[index + 1]?.value === "=" && tokens[index + 2]?.value === ">") {
+	if (tokens[index]?.type === "identifier" && tokens[index + 1]?.value === "=>") {
 		return true;
 	}
 	if (tokens[index]?.value !== "(") return false;
@@ -256,7 +636,7 @@ function isArrowFunction(tokens, index) {
 		if (tokens[cursor].value === "(") depth++;
 		else if (tokens[cursor].value === ")") {
 			depth--;
-			if (depth === 0) return tokens[cursor + 1]?.value === "=" && tokens[cursor + 2]?.value === ">";
+			if (depth === 0) return tokens[index + 1]?.value === "=>";
 		}
 	}
 	return false;
