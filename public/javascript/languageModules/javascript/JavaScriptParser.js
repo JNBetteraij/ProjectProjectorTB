@@ -1,6 +1,7 @@
 import { ExportSearch } from "../../core/Searches/ExportSearch.js";
 import { ImportSearch } from "../../core/Searches/ImportSearch.js";
 import { LanguageParserModule } from "../LanguageParserModule.js";
+import { Token } from "../Token.js";
 import { brackets, closingBrackets, openingBrackets, operators, operatorStarts, separators } from "./definitions.js";
 
 /** @typedef {new (...args: any[]) => import("../../core/Searches/Search.js").Search} SearchClass */
@@ -29,17 +30,40 @@ export class JavaScriptParser extends LanguageParserModule {
 		"return",
 	]);
 
+	/** Parse the file and run the requested search over its tokens.
+	 *
+	 * @param {{name: string, source: string}} file Source file to analyze.
+	 * @param {import("../../core/Searches/Search.js").Search} search Search instance whose results should be produced.
+	 * @returns {*} Results produced by the selected search.
+	 */
 	parse(file, search) {
 		const find = this.supportedSearches.get(search.constructor);
 
 		const tokens = this.getTokens(file);
+
+		console.log(file.name);
+		console.log(tokens);
+		console.log(findDeclarationTypes(tokens));
+
 		return find(tokens, findDeclarationTypes(tokens));
 	}
 
+	/** Resolve an imported source path against the available project files.
+	 *
+	 * @param {string} importerPath Path of the file containing the import.
+	 * @param {string} source Module specifier from the import.
+	 * @param {Iterable<string>} filePaths Project file paths to search.
+	 * @returns {{path: string | null, status: "resolved" | "external" | "unresolved" | "ambiguous"}} Resolution result containing the matched path, if any, and its status.
+	 */
 	resolveImportPath(importerPath, source, filePaths) {
 		return resolveImportPath(importerPath, source, new Set(filePaths), this.fileExtensions);
 	}
 
+	/** Tokenize a file and return its tokens.
+	 *
+	 * @param {{name: string, source: string}} file Source file to tokenize.
+	 * @returns {Token[]} Tokens created from the file source.
+	 */
 	tokenize(file) {
 		const tokens = tokenize(file);
 		// console.log(file.name);
@@ -49,6 +73,14 @@ export class JavaScriptParser extends LanguageParserModule {
 	}
 }
 
+/** Resolve a module source to a matching project file when possible.
+ *
+ * @param {string} importerPath Path of the file containing the import.
+ * @param {string} source Module specifier from the import.
+ * @param {Set<string>} filePaths Project file paths to search.
+ * @param {readonly string[]} extensions File extensions to try when resolving extensionless paths.
+ * @returns {{path: string | null, status: "resolved" | "external" | "unresolved" | "ambiguous"}} Resolution result containing the matched path, if any, and its status.
+ */
 function resolveImportPath(importerPath, source, filePaths, extensions) {
 	const normalizedSource = source.replaceAll("\\", "/");
 	const isAbsolute = normalizedSource.startsWith("/");
@@ -85,17 +117,34 @@ function resolveImportPath(importerPath, source, filePaths, extensions) {
 	};
 }
 
+/** Check whether two normalized paths match by their trailing segments.
+ *
+ * @param {string} filePath Project file path to compare.
+ * @param {string} candidate Candidate module path to compare.
+ * @returns {boolean} Whether the paths match by their trailing segments.
+ */
 function pathsMatchBySuffix(filePath, candidate) {
 	const fileSegments = filePath.replaceAll("\\", "/").split("/").filter(Boolean);
 	const candidateSegments = candidate.split("/").filter(Boolean);
 	return hasSuffix(fileSegments, candidateSegments) || hasSuffix(candidateSegments, fileSegments);
 }
 
+/** Determine whether one path segment list ends with another.
+ *
+ * @param {string[]} path Path segments to inspect.
+ * @param {string[]} suffix Segments expected at the end of the path.
+ * @returns {boolean} Whether the path ends with the supplied segments.
+ */
 function hasSuffix(path, suffix) {
 	if (suffix.length > path.length) return false;
 	return suffix.every((segment, index) => segment === path[path.length - suffix.length + index]);
 }
 
+/** Convert JavaScript source text into token array.
+ *
+ * @param {{source: string}} file File object containing JavaScript source text.
+ * @returns {Token[]} Tokens generated from the source.
+ */
 function tokenize(file) {
 	const source = file.source;
 	const tokens = [];
@@ -148,11 +197,7 @@ function tokenize(file) {
 
 			// Add template text token
 			if (index > textStart) {
-				tokens.push({
-					type: "template-text",
-					value: source.slice(textStart, index),
-					line: textLine,
-				});
+				tokens.push(new Token("template-text", source.slice(textStart, index), textLine));
 			}
 
 			// Handle closing backtick
@@ -161,12 +206,7 @@ function tokenize(file) {
 				const openIndex = openTemplates.at(-1).startTokenIndex;
 
 				tokens[openIndex].closedBy = tokenIndex;
-				tokens.push({
-					type: "template-end",
-					value: "`",
-					line,
-					closes: openIndex,
-				});
+				tokens.push(new Token("template-end", "`", line, { closes: openIndex }));
 
 				index++;
 				openTemplates.pop();
@@ -176,11 +216,7 @@ function tokenize(file) {
 			// Handle expression start
 			if (source[index] === "$" && source[index + 1] === "{") {
 				const expressionStartTokenIndex = tokens.length;
-				tokens.push({
-					type: "template-expression-start",
-					value: "${",
-					line,
-				});
+				tokens.push(new Token("template-expression-start", "${", line));
 
 				index += 2;
 
@@ -220,11 +256,7 @@ function tokenize(file) {
 				index++;
 			}
 
-			tokens.push({
-				type: "comment",
-				value: source.slice(commentStart, index),
-				line: commentLine,
-			});
+			tokens.push(new Token("comment", source.slice(commentStart, index), commentLine));
 
 			continue;
 		}
@@ -249,11 +281,7 @@ function tokenize(file) {
 				}
 			}
 
-			const token = {
-				type: "block-comment",
-				value: source.slice(commentStart, index),
-				line: commentLine,
-			};
+			const token = new Token("block-comment", source.slice(commentStart, index), commentLine);
 
 			if (!closed) {
 				token.error = "Unterminated block comment";
@@ -267,11 +295,7 @@ function tokenize(file) {
 		if (character === backtick) {
 			const tokenIndex = tokens.length;
 
-			tokens.push({
-				type: "template-start",
-				value: "`",
-				line,
-			});
+			tokens.push(new Token("template-start", "`", line));
 
 			openTemplates.push({
 				inExpression: false,
@@ -339,11 +363,7 @@ function tokenize(file) {
 				index++;
 			}
 
-			const token = {
-				type: "string",
-				value,
-				line: tokenLine,
-			};
+			const token = new Token("string", value, tokenLine);
 
 			if (error) {
 				token.error = error;
@@ -391,11 +411,7 @@ function tokenize(file) {
 				}
 			}
 
-			tokens.push({
-				type: "number",
-				value: source.slice(start, index),
-				line: tokenLine,
-			});
+			tokens.push(new Token("number", source.slice(start, index), tokenLine));
 
 			continue;
 		}
@@ -405,7 +421,7 @@ function tokenize(file) {
 			const tokenLine = line;
 			const start = index++;
 			while (index < source.length && /[\w$]/.test(source[index])) index++;
-			tokens.push({ type: "identifier", value: source.slice(start, index), line: tokenLine });
+			tokens.push(new Token("identifier", source.slice(start, index), tokenLine));
 			continue;
 		}
 
@@ -425,12 +441,7 @@ function tokenize(file) {
 					const expressionStartTokenIndex = activeTemplate.expressionStartTokenIndex;
 
 					tokens[expressionStartTokenIndex].closedBy = tokenIndex;
-					tokens.push({
-						type: "template-expression-end",
-						value: "}",
-						line,
-						closes: expressionStartTokenIndex,
-					});
+					tokens.push(new Token("template-expression-end", "}", line, { closes: expressionStartTokenIndex }));
 
 					activeTemplate.inExpression = false;
 					activeTemplate.expressionStartTokenIndex = null;
@@ -447,11 +458,7 @@ function tokenize(file) {
 		if (brackets.has(character)) {
 			const tokenIndex = tokens.length;
 
-			const token = {
-				type: "bracket",
-				value: character,
-				line,
-			};
+			const token = new Token("bracket", character, line);
 
 			tokens.push(token);
 			index++;
@@ -487,11 +494,7 @@ function tokenize(file) {
 
 		// handle seperators
 		if (separators.has(character)) {
-			tokens.push({
-				type: "separator",
-				value: character,
-				line,
-			});
+			tokens.push(new Token("separator", character, line));
 
 			index++;
 			continue;
@@ -518,13 +521,10 @@ function tokenize(file) {
 					value += "=";
 				}
 
-				matchedOperator = {
-					type: "operator",
-					value,
+				matchedOperator = new Token("operator", value, tokenLine, {
 					category: isAssignment ? "assignment" : operator.category,
 					name: isAssignment ? `${operator.name}-assignment` : operator.name,
-					line: tokenLine,
-				};
+				});
 
 				break;
 			}
@@ -537,15 +537,15 @@ function tokenize(file) {
 		}
 
 		// handles other
-		tokens.push({
-			type: "other",
-			value: character,
-			line,
-		});
+		tokens.push(new Token("other", character, line));
 		index++;
 	}
 	return tokens;
 
+	/** Handle a line break and update the current source line.
+	 *
+	 * @returns {boolean} Whether a line break was consumed.
+	 */
 	function consumeLineBreak() {
 		const character = source[index];
 		if (!isLineBreak(source[index])) return false;
@@ -556,11 +556,21 @@ function tokenize(file) {
 		return true;
 	}
 
+	/** Check whether a character is one of JavaScript's line terminators.
+	 *
+	 * @param {string | undefined} character Character to check.
+	 * @returns {boolean} Whether the character is a line terminator.
+	 */
 	function isLineBreak(character) {
 		return ["\n", "\r", "\u2028", "\u2029"].includes(character);
 	}
 }
 
+/** Map declared identifiers to their inferred declaration types.
+ *
+ * @param {Token[]} tokens Tokens to inspect for declarations.
+ * @returns {Map<string, string>} Map from declared identifier names to inferred types.
+ */
 function findDeclarationTypes(tokens) {
 	const types = new Map();
 	for (let index = 0; index < tokens.length; index++) {
@@ -583,6 +593,12 @@ function findDeclarationTypes(tokens) {
 	return types;
 }
 
+/** Read variable declarations following a const, let, or var keyword.
+ *
+ * @param {Token[]} tokens Token stream containing the declarations.
+ * @param {number} keywordIndex Index of the const, let, or var keyword.
+ * @returns {{name: string, type: string}[]} Declarations and their inferred value types.
+ */
 function readVariableDeclarations(tokens, keywordIndex) {
 	const declarations = [];
 	let index = keywordIndex + 1;
@@ -624,6 +640,12 @@ function readVariableDeclarations(tokens, keywordIndex) {
 	return declarations;
 }
 
+/** Infer whether an expression begins with a class, function, or other value.
+ *
+ * @param {Token[]} tokens Expression token stream.
+ * @param {number} index Index at which the expression begins.
+ * @returns {"variable" | "class" | "function"} Inferred declaration type.
+ */
 function inferValueType(tokens, index) {
 	while (tokens[index]?.value === "(" && !isArrowFunction(tokens, index)) index++;
 	const token = tokens[index];
@@ -635,10 +657,22 @@ function inferValueType(tokens, index) {
 	return "variable";
 }
 
+/** Check whether tokens at the given index begin an async function expression.
+ *
+ * @param {Token[]} tokens Token stream to inspect.
+ * @param {number} index Index at which the potential async function begins.
+ * @returns {boolean} Whether the tokens begin with an async function expression.
+ */
 function isAsyncFunction(tokens, index) {
 	return tokens[index]?.value === "async" && tokens[index + 1]?.value === "function";
 }
 
+/** Check whether tokens at the given index form an arrow function expression.
+ *
+ * @param {Token[]} tokens Token stream to inspect.
+ * @param {number} index Index at which the potential arrow function begins.
+ * @returns {boolean} Whether the tokens form an arrow function expression.
+ */
 function isArrowFunction(tokens, index) {
 	if (tokens[index]?.value === "async") index++;
 	if (tokens[index]?.type === "identifier" && tokens[index + 1]?.value === "=>") {
@@ -657,12 +691,24 @@ function isArrowFunction(tokens, index) {
 	return false;
 }
 
+/** Read the declared name following a function keyword, if present.
+ *
+ * @param {Token[]} tokens Token stream containing the function.
+ * @param {number} functionIndex Index of the function keyword.
+ * @returns {string | null} Function name, or null for an anonymous function.
+ */
 function getFunctionName(tokens, functionIndex) {
 	let cursor = functionIndex + 1;
 	if (tokens[cursor]?.value === "*") cursor++;
 	return tokens[cursor]?.type === "identifier" ? tokens[cursor].value : null;
 }
 
+/** Collect import declarations and re-exports represented by the tokens.
+ *
+ * @param {Token[]} tokens Tokens to inspect for imports and re-exports.
+ * @param {Map<string, string>} declarationTypes Known local declaration types.
+ * @returns {{source: string, path: null, items: Object[], reExport: boolean}[]} Import and re-export records found in the token stream.
+ */
 function findImports(tokens, declarationTypes) {
 	const imports = [];
 	for (let index = 0; index < tokens.length; index++) {
@@ -711,6 +757,12 @@ function findImports(tokens, declarationTypes) {
 	return imports;
 }
 
+/** Extract imported names, aliases, and known declaration types.
+ *
+ * @param {Token[]} tokens Tokens representing the import clause.
+ * @param {Map<string, string>} declarationTypes Known local declaration types.
+ * @returns {{name: string, localName: string | null, type: string | null}[]} Imported names, local aliases, and known types.
+ */
 function readImportItems(tokens, declarationTypes) {
 	const items = [];
 	let index = 0;
@@ -757,6 +809,12 @@ function readImportItems(tokens, declarationTypes) {
 	return items;
 }
 
+/** Collect named, default, and namespace exports represented by the tokens.
+ *
+ * @param {Token[]} tokens Tokens to inspect for export declarations.
+ * @param {Map<string, string>} declarationTypes Known local declaration types.
+ * @returns {{name: string, type: string, localName?: string}[]} Export records found in the token stream.
+ */
 function findExports(tokens, declarationTypes) {
 	const exports = [];
 	for (let index = 0; index < tokens.length; index++) {
@@ -831,6 +889,11 @@ function findExports(tokens, declarationTypes) {
 	return deduplicateExports(exports);
 }
 
+/** Keep only the last export encountered for each exported name.
+ *
+ * @param {{name: string, type: string, localName?: string}[]} exports Export records that may contain duplicate names.
+ * @returns {{name: string, type: string, localName?: string}[]} Export records with only the last occurrence of each name.
+ */
 function deduplicateExports(exports) {
 	const byName = new Map();
 	for (const exported of exports) byName.set(exported.name, exported);
