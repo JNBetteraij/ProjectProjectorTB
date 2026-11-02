@@ -3,7 +3,7 @@ import { GraphBuilder } from "./core/GraphBuilder.js";
 import { Scanner } from "./core/Scanner.js";
 import { ExportSearch } from "./core/Searches/ExportSearch.js";
 import { ImportSearch } from "./core/Searches/ImportSearch.js";
-import { JavaScriptAnalyzer } from "./languages/javascript/JavaScriptAnalyzer.js";
+import { JavaScriptParser } from "./languageModules/javascript/JavaScriptParser.js";
 import { GraphRenderer } from "./ui/GraphRenderer.js";
 import { ScopeListRenderer } from "./ui/ScopeListRenderer.js";
 
@@ -21,7 +21,7 @@ const fitGraphButton = document.querySelector("#fitGraphButton");
 const statusElement = document.querySelector("#status");
 const projectSummary = document.querySelector("#projectSummary");
 
-const langaugeParser = new JavaScriptAnalyzer();
+const langaugeParser = new JavaScriptParser();
 const fileLoader = new FileLoader(langaugeParser.fileExtensions, []);
 const scanner = new Scanner([new ImportSearch(langaugeParser), new ExportSearch(langaugeParser)]);
 const graphBuilder = new GraphBuilder();
@@ -82,7 +82,6 @@ async function scanSelectedFiles() {
 	if (extensions.length > 0) {
 		options.extensions = extensions;
 	}
-	console.log();
 	const files = fileLoader.getFiles(selectedFiles, options);
 	if (!files.length) {
 		statusElement.textContent = "No files matched the configured extensions.";
