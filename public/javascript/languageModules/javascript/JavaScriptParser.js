@@ -41,10 +41,11 @@ export class JavaScriptParser extends LanguageParserModule {
 	}
 
 	tokenize(file) {
+		const tokens = tokenize(file);
 		// console.log(file.name);
 		// console.log(tokens);
 
-		return tokenize(file);
+		return tokens;
 	}
 }
 
@@ -102,19 +103,20 @@ function tokenize(file) {
 	let index = 0;
 
 	const openBrackets = [];
-	const templateStack = [];
+	const openTemplates = [];
+	const backtick = "`";
 
 	while (index < source.length) {
 		const character = source[index];
 		const next = source[index + 1];
 
-		// Handle template literal text
-		const template = templateStack.at(-1);
+		// Handle template literal body and end
+		const template = openTemplates.at(-1);
 		if (template && !template.inExpression) {
 			const textStart = index;
 			const textLine = line;
 
-			// Read template text
+			// Run until end of text
 			while (index < source.length) {
 				const current = source[index];
 
@@ -123,19 +125,10 @@ function tokenize(file) {
 					index++;
 
 					if (index < source.length) {
-						if (consumeLineBreak()) {
-							// Line break consumed
-						} else {
-							index++;
-						}
+						if (!consumeLineBreak()) index++;
 					}
 
 					continue;
-				}
-
-				// Stop at expression or closing backtick
-				if (current === "`" || (current === "$" && source[index + 1] === "{")) {
-					break;
 				}
 
 				// Handle line breaks
@@ -143,8 +136,15 @@ function tokenize(file) {
 					continue;
 				}
 
+				// Break at expression or closing backtick
+				if (current === backtick || (current === "$" && source[index + 1] === "{")) {
+					break;
+				}
+
 				index++;
 			}
+
+			// handle template closing
 
 			// Add template text token
 			if (index > textStart) {
@@ -156,20 +156,26 @@ function tokenize(file) {
 			}
 
 			// Handle closing backtick
-			if (source[index] === "`") {
+			if (source[index] === backtick) {
+				const tokenIndex = tokens.length;
+				const openIndex = openTemplates.at(-1).startTokenIndex;
+
+				tokens[openIndex].closedBy = tokenIndex;
 				tokens.push({
 					type: "template-end",
 					value: "`",
 					line,
+					closes: openIndex,
 				});
 
 				index++;
-				templateStack.pop();
+				openTemplates.pop();
 				continue;
 			}
 
 			// Handle expression start
 			if (source[index] === "$" && source[index + 1] === "{") {
+				const expressionStartTokenIndex = tokens.length;
 				tokens.push({
 					type: "template-expression-start",
 					value: "${",
@@ -180,11 +186,15 @@ function tokenize(file) {
 
 				template.inExpression = true;
 				template.braceDepth = 0;
+				template.expressionStartTokenIndex = expressionStartTokenIndex;
 
 				continue;
 			}
 
-			// End of source
+			// handle end of source
+			if (index >= source.length) {
+				tokens.at(-1).error = "Unterminated template literal string";
+			}
 			break;
 		}
 
@@ -254,7 +264,7 @@ function tokenize(file) {
 		}
 
 		// Handle template literal start
-		if (character === "`") {
+		if (character === backtick) {
 			const tokenIndex = tokens.length;
 
 			tokens.push({
@@ -263,7 +273,7 @@ function tokenize(file) {
 				line,
 			});
 
-			templateStack.push({
+			openTemplates.push({
 				inExpression: false,
 				braceDepth: 0,
 				startTokenIndex: tokenIndex,
@@ -400,8 +410,7 @@ function tokenize(file) {
 		}
 
 		// Handle template expression
-		const activeTemplate = templateStack.at(-1);
-
+		const activeTemplate = openTemplates.at(-1);
 		if (activeTemplate?.inExpression) {
 			// Handle nested opening curly braces
 			if (character === "{") {
@@ -412,13 +421,19 @@ function tokenize(file) {
 			else if (character === "}") {
 				// End of template expression
 				if (activeTemplate.braceDepth === 0) {
+					const tokenIndex = tokens.length;
+					const expressionStartTokenIndex = activeTemplate.expressionStartTokenIndex;
+
+					tokens[expressionStartTokenIndex].closedBy = tokenIndex;
 					tokens.push({
 						type: "template-expression-end",
 						value: "}",
 						line,
+						closes: expressionStartTokenIndex,
 					});
 
 					activeTemplate.inExpression = false;
+					activeTemplate.expressionStartTokenIndex = null;
 					index++;
 					continue;
 				}
