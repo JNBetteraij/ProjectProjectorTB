@@ -1,10 +1,12 @@
+/** @typedef {new (...args: any[]) => import("../core/Searches/Search.js").Search} SearchClass */
+
 export class LanguageParserModule {
 	/** @returns {readonly string[]} */
 	get fileExtensions() {
 		return this.constructor.fileExtensions;
 	}
 
-	/** @returns {Readonly Map<Function, Function>} */
+	/** @returns {Map<SearchClass, Function>} */
 	get supportedSearches() {
 		return this.constructor.supportedSearches;
 	}
