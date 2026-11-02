@@ -82,7 +82,6 @@ async function scanSelectedFiles() {
 	if (extensions.length > 0) {
 		options.extensions = extensions;
 	}
-	console.log();
 	const files = fileLoader.getFiles(selectedFiles, options);
 	if (!files.length) {
 		statusElement.textContent = "No files matched the configured extensions.";

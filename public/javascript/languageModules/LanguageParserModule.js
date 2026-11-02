@@ -22,7 +22,7 @@ export class LanguageParserModule {
 	getTokens(file) {
 		if (file.tokens) return file.tokens;
 
-		this.tokenize(file);
+		const tokens = this.tokenize(file);
 
 		//cache tokens on file
 		file.tokens = tokens;
