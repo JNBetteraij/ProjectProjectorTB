@@ -21,9 +21,9 @@ const fitGraphButton = document.querySelector("#fitGraphButton");
 const statusElement = document.querySelector("#status");
 const projectSummary = document.querySelector("#projectSummary");
 
-const langaugeParser = new JavaScriptParser();
-const fileLoader = new FileLoader(langaugeParser.fileExtensions, []);
-const scanner = new Scanner([new ImportSearch(langaugeParser), new ExportSearch(langaugeParser)]);
+const languageParser = new JavaScriptParser();
+const fileLoader = new FileLoader(languageParser.fileExtensions, []);
+const scanner = new Scanner([new ImportSearch(languageParser), new ExportSearch(languageParser)]);
 const graphBuilder = new GraphBuilder();
 const graphRenderer = new GraphRenderer({
 	viewport: document.querySelector("#graphViewport"),
