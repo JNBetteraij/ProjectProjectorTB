@@ -2,13 +2,13 @@ import { ExportSearch } from "../../core/Searches/ExportSearch.js";
 import { ImportSearch } from "../../core/Searches/ImportSearch.js";
 import { LanguageParserModule } from "../LanguageParserModule.js";
 
-/** @typedef {abstract new (...args: any[]) => import("../../core/Searches/Search.js").Search} SearchClass */
+/** @typedef {new (...args: any[]) => import("../../core/Searches/Search.js").Search} SearchClass */
 
 export class JavaScriptParser extends LanguageParserModule {
 	/** @type {readonly string[]} */
 	static fileExtensions = Object.freeze([".js", ".jsx", ".mjs", ".cjs"]);
 
-	/** @type {ReadonlyMap<SearchClass, Function>} */
+	/** @type {readonly Map<typeof import("../../core/Searches/Search.js").Search, Function>} */
 	static supportedSearches = new Map([
 		[ImportSearch, findImports],
 		[ExportSearch, findExports],
@@ -31,12 +31,19 @@ export class JavaScriptParser extends LanguageParserModule {
 	parse(file, search) {
 		const find = this.supportedSearches.get(search.constructor);
 
-		const tokens = tokenize(file);
+		const tokens = this.getTokens(file);
 		return find(tokens, findDeclarationTypes(tokens));
 	}
 
 	resolveImportPath(importerPath, source, filePaths) {
 		return resolveImportPath(importerPath, source, new Set(filePaths), this.fileExtensions);
+	}
+
+	tokenize(file) {
+		// console.log(file.name);
+		// console.log(tokens);
+
+		return tokenize(file);
 	}
 }
 

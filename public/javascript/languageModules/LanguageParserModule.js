@@ -1,10 +1,12 @@
+/** @typedef {new (...args: any[]) => import("../core/Searches/Search.js").Search} SearchClass */
+
 export class LanguageParserModule {
 	/** @returns {readonly string[]} */
 	get fileExtensions() {
 		return this.constructor.fileExtensions;
 	}
 
-	/** @returns {Readonly Map<Function, Function>} */
+	/** @returns {Map<SearchClass, Function>} */
 	get supportedSearches() {
 		return this.constructor.supportedSearches;
 	}
@@ -15,5 +17,19 @@ export class LanguageParserModule {
 
 	resolveImportPath() {
 		throw new TypeError(`${this.constructor.name} must implement resolveImportPath().`);
+	}
+
+	getTokens(file) {
+		if (file.tokens) return file.tokens;
+
+		this.tokenize(file);
+
+		//cache tokens on file
+		file.tokens = tokens;
+		return tokens;
+	}
+
+	tokenize(file) {
+		throw new TypeError(`${this.constructor.name} must implement tokenize().`);
 	}
 }
