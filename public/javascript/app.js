@@ -82,20 +82,21 @@ async function scanSelectedFiles() {
 	if (extensions.length > 0) {
 		options.extensions = extensions;
 	}
-	const files = fileLoader.getFiles(selectedFiles, options);
-	if (!files.length) {
-		statusElement.textContent = "No files matched the configured extensions.";
-		return;
-	}
-
 	scanButton.disabled = true;
 	downloadButton.disabled = true;
 	copyButton.disabled = true;
 	fitGraphButton.disabled = true;
-	statusElement.textContent = `Scanning ${files.length} file(s)…`;
+	statusElement.textContent = "Loading project files…";
 
 	try {
-		const scannedFiles = await scanner.scan(fileLoader.retrieve(files));
+		const files = await fileLoader.loadFiles(selectedFiles, options);
+		if (!files.length) {
+			statusElement.textContent = "No files matched the configured extensions.";
+			return;
+		}
+
+		statusElement.textContent = `Scanning ${files.length} file(s)…`;
+		const scannedFiles = scanner.scan(files);
 		const graph = graphBuilder.build(scannedFiles);
 		scanResults = graph.files;
 		graphRenderer.render(graph);

@@ -1,3 +1,5 @@
+//TODO seperate this into a text scanner and a seperate file analyzer that handles the parsing of the file.
+
 export class Scanner {
 	constructor(searches) {
 		if (!Array.isArray(searches)) {
@@ -6,16 +8,16 @@ export class Scanner {
 		const resultKeys = new Set();
 		for (const search of searches) {
 			if (
-				!search ||
-				typeof search.search !== "function" ||
-				typeof search.resultKey !== "string" ||
-				!search.resultKey
+				!search
+				|| typeof search.search !== "function"
+				|| typeof search.resultKey !== "string"
+				|| !search.resultKey
 			) {
 				throw new TypeError("Each search strategy must provide a resultKey and search method.");
 			}
 			if (
-				["id", "path", "name", "sizeBytes", "source", "constructor", "prototype"].includes(search.resultKey) ||
-				search.resultKey === "__proto__"
+				["id", "path", "name", "sizeBytes", "source", "constructor", "prototype"].includes(search.resultKey)
+				|| search.resultKey === "__proto__"
 			) {
 				throw new TypeError(`The result key "${search.resultKey}" is reserved for file metadata.`);
 			}
@@ -27,18 +29,10 @@ export class Scanner {
 		this.searches = [...searches];
 	}
 
-	async scan(fileEntries) {
-		const files = [];
-		for await (const entry of fileEntries) {
-			files.push({
-				...entry,
-				id: files.length + 1,
-			});
-		}
-
+	scan(files) {
 		for (const file of files) {
 			for (const search of this.searches) {
-				file[search.resultKey] = await search.search(file, files);
+				file[search.resultKey] = search.search(file, files);
 			}
 		}
 		for (const file of files) {

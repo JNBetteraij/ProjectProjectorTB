@@ -1,6 +1,17 @@
+import { File } from "./File.js";
 import { Path } from "./Path.js";
 
+/** Load and normalize project files before they are scanned.
+ *
+ * @class FileLoader
+ * @typedef {FileLoader}
+ */
 export class FileLoader {
+	/** Creates a file loader with the allowed extensions and ignored folders.
+	 *
+	 * @param {string[]} extensions Accepted file extensions such as ".js".
+	 * @param {string[]} [excludedFolders=[]] Folder prefixes that should be skipped during scanning.
+	 */
 	constructor(extensions, excludedFolders = []) {
 		if (!Array.isArray(extensions)) {
 			throw new TypeError("File extensions must be provided as an array.");
@@ -9,28 +20,38 @@ export class FileLoader {
 		this.excludedFolders = excludedFolders;
 	}
 
-	getFiles(files, { extensions = this.extensions, excludedFolders = this.excludedFolders } = {}) {
-		return files.filter((file) => {
-			const name = file.name.toLowerCase();
-			if (excludedFolders.some((folder) => file.webkitRelativePath.startsWith(folder))) return false;
-			return extensions.some((extension) => name.endsWith(extension));
-		});
+	/** Filter and read selected browser files into project File instances.
+	 *
+	 * @param {Array<{ name: string, size?: number, webkitRelativePath?: string, text: () => Promise<string> }>} files Browser file objects to inspect and read.
+	 * @param {{ extensions?: string[], excludedFolders?: string[] }} [options={}] Optional filter overrides.
+	 * @returns {Promise<File[]>} Matching project files with their source text loaded.
+	 */
+	async loadFiles(files, { extensions = this.extensions, excludedFolders = this.excludedFolders } = {}) {
+		const matchingFiles = files
+			.filter((file) => {
+				const name = file.name.toLowerCase();
+				if (excludedFolders.some((folder) => (file.webkitRelativePath || "").startsWith(folder))) return false;
+				return extensions.some((extension) => name.endsWith(extension));
+			});
+
+		return Promise.all(
+			matchingFiles.map(async (file) => {
+				return new File({
+					path: this.getProjectPath(file),
+					name: file.name,
+					sizeBytes: file.size ?? 0,
+					source: await file.text(),
+				});
+			}),
+		);
 	}
 
-	async *retrieve(files) {
-		for (const file of files) {
-			yield {
-				path: this.getProjectPath(file),
-				name: file.name,
-				sizeBytes: file.size,
-				source: await file.text(),
-			};
-		}
-	}
-
+	/** Convert a browser file path into the project Path representation.
+	 *
+	 * @param {{ webkitRelativePath?: string, name: string }} file Browser file entry.
+	 * @returns {Path} Normalized project path.
+	 */
 	getProjectPath(file) {
 		return new Path(file.webkitRelativePath || file.name);
 	}
 }
-
-export class File {}
