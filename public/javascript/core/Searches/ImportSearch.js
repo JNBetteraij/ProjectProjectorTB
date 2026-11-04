@@ -1,10 +1,11 @@
 import { Search } from "./Search.js";
 
 export class ImportSearch extends Search {
-	constructor(languageSearchModule) {
-		super(languageSearchModule, "imports");
+	constructor(languageParserModule) {
+		super(languageParserModule, "imports");
 
-		if (typeof languageSearchModule.resolveImportPath !== "function") {
+		//TODO, built check to see if funtion implemented
+		if (typeof languageParserModule.resolveImportPath !== "function") {
 			throw new TypeError("The language parse module must provide import path resolution.");
 		}
 	}
