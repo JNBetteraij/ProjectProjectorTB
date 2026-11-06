@@ -68,6 +68,60 @@ export const operators = [
 // Create a set containing every character that can start an operator.
 export const operatorStarts = new Set(operators.map((operator) => operator.value[0]));
 
+// Create a lookup object returning the precedence value for each operator.
+export const operatorPrecedence = Object.freeze(
+	Object.fromEntries(
+		Object.entries({
+			1: [","],
+			2: ["=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "&=", "|=", "^=", "&&=", "||=", "??="],
+			4: ["??", "||"],
+			5: ["&&"],
+			6: ["|"],
+			7: ["^"],
+			8: ["&"],
+			9: ["==", "!=", "===", "!=="],
+			10: ["<", ">", "<=", ">=", "in", "instanceof"],
+			11: ["<<", ">>", ">>>"],
+			12: ["+", "-"],
+			13: ["*", "/", "%"],
+			14: ["**"],
+		}).flatMap(([precedence, operators]) => operators.map((operator) => [operator, Number(precedence)])),
+	),
+);
+
+// Create numeric lookup objects
+export const numericTypes = Object.freeze({
+	integer: { type: "integer", digits: /[0-9_eE.]/ },
+	decimal: { type: "decimal", digits: /[0-9_eE]/ },
+	fraction: { type: "fraction", digits: /[0-9_eE]/ },
+	exponent: { type: "exponent", digits: /[0-9_]/ },
+	hexadecimal: { type: "hexadecimal", digits: /[0-9a-fA-F_]/ },
+	binary: { type: "binary", digits: /[01_]/ },
+	octal: { type: "octal", digits: /[0-7_]/ },
+	BigInt: { type: "bigInt", digits: /[0-9_]/ },
+});
+
+export const decimalPoint = Object.freeze(
+	Object.assign(Object.create(null), {
+		".": numericTypes.decimal,
+	}),
+);
+
+export const numericPrefix = Object.freeze(
+	Object.assign(Object.create(null), {
+		"0x": numericTypes.hexadecimal,
+		"0b": numericTypes.binary,
+		"0o": numericTypes.octal,
+		".": numericTypes.fraction,
+	}),
+);
+
+export const numericSuffix = Object.freeze(
+	Object.assign(Object.create(null), {
+		n: numericTypes.BigInt,
+	}),
+);
+
 // Bracket characters
 const bracketsChars = [
 	["{", "}"],

@@ -19,6 +19,15 @@ export class LanguageParserModule {
 		throw new TypeError(`${this.constructor.name} must implement resolveImportPath().`);
 	}
 
+	parseSyntax(file) {
+		if (file.syntax) return file.syntax;
+
+		const tokens = this.getTokens(file);
+
+		file.syntax = this.buildSyntaxTree(tokens);
+		return file.syntax;
+	}
+
 	getTokens(file) {
 		if (file.tokens) return file.tokens;
 
