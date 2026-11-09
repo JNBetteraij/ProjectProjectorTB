@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { ExportSearch } from "../public/javascript/core/Searches/ExportSearch.js";
 import { ImportSearch } from "../public/javascript/core/Searches/ImportSearch.js";
 import { JavaScriptParser, SyntaxTreeNode } from "../public/javascript/languageModules/javascript/JavaScriptParser.js";
+import { buildSyntaxTree } from "../public/javascript/languageModules/javascript/syntaxTreeBuilder.js";
 
 const parser = new JavaScriptParser();
 const file = {
@@ -39,6 +40,7 @@ const nodes = descendants(syntax);
 const find = (type, predicate = () => true) => nodes.find((node) => node.type === type && predicate(node));
 
 assert.ok(syntax instanceof SyntaxTreeNode);
+assert.ok(buildSyntaxTree(parser.getTokens(file)) instanceof SyntaxTreeNode);
 assert.deepEqual(
 	syntax.body.map((node) => node.type),
 	["ImportDeclaration", "ExportDeclaration", "ClassDeclaration", "VariableDeclaration"],
