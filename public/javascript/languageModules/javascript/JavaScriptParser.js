@@ -1,8 +1,6 @@
 import { ExportSearch } from "../../core/Searches/ExportSearch.js";
 import { ImportSearch } from "../../core/Searches/ImportSearch.js";
 import { LanguageParserModule } from "../LanguageParserModule.js";
-import { buildSyntaxTree as buildSyntaxTreeFromTokens } from "./syntaxTreeBuilder.js";
-export { SyntaxTreeNode } from "./syntaxTreeBuilder.js";
 import {
 	brackets,
 	closingBrackets,
@@ -14,6 +12,10 @@ import {
 	operatorStarts,
 	separators,
 } from "./definitions.js";
+import { SyntaxToken } from "./SyntaxToken.js";
+import { buildSyntaxTree as buildSyntaxTreeFromTokens } from "./syntaxTreeBuilder.js";
+export { SyntaxToken } from "./SyntaxToken.js";
+export { SyntaxTreeNode, SyntaxTreeNodeType } from "./syntaxTreeBuilder.js";
 
 /** @typedef {new (...args: any[]) => import("../../core/Searches/Search.js").Search} SearchClass */
 
@@ -172,7 +174,7 @@ function tokenize(file) {
 
 			// Add template text token
 			if (index > textStart) {
-				tokens.push({
+				createToken({
 					type: "template-text",
 					value: source.slice(textStart, index),
 					line: textLine,
@@ -185,7 +187,7 @@ function tokenize(file) {
 				const openIndex = openTemplates.at(-1).startTokenIndex;
 
 				tokens[openIndex].closedBy = tokenIndex;
-				tokens.push({
+				createToken({
 					type: "template-end",
 					value: "`",
 					line,
@@ -200,7 +202,7 @@ function tokenize(file) {
 			// Handle expression start
 			if (source[index] === "$" && source[index + 1] === "{") {
 				const expressionStartTokenIndex = tokens.length;
-				tokens.push({
+				createToken({
 					type: "template-expression-start",
 					value: "${",
 					line,
@@ -244,7 +246,7 @@ function tokenize(file) {
 				index++;
 			}
 
-			tokens.push({
+			createToken({
 				type: "comment",
 				value: source.slice(commentStart, index),
 				line: commentLine,
@@ -283,7 +285,7 @@ function tokenize(file) {
 				token.error = "Unterminated block comment";
 			}
 
-			tokens.push(token);
+			createToken(token);
 			continue;
 		}
 
@@ -291,7 +293,7 @@ function tokenize(file) {
 		if (character === backtick) {
 			const tokenIndex = tokens.length;
 
-			tokens.push({
+			createToken({
 				type: "template-start",
 				value: "`",
 				line,
@@ -375,7 +377,7 @@ function tokenize(file) {
 				token.error = "Unterminated string";
 			}
 
-			tokens.push(token);
+			createToken(token);
 			continue;
 		}
 
@@ -441,7 +443,7 @@ function tokenize(file) {
 			if (suffix) index++;
 
 			// Create number token
-			tokens.push({
+			createToken({
 				type: "number",
 				value: source.slice(start, index),
 				line: tokenLine,
@@ -458,7 +460,7 @@ function tokenize(file) {
 			const tokenLine = line;
 			const start = index++;
 			while (!endOfSource(index) && /[\w$]/.test(source[index])) index++;
-			tokens.push({ type: "private-identifier", value: source.slice(start, index), line: tokenLine });
+			createToken({ type: "private-identifier", value: source.slice(start, index), line: tokenLine });
 			continue;
 		}
 
@@ -467,7 +469,7 @@ function tokenize(file) {
 			const tokenLine = line;
 			const start = index++;
 			while (!endOfSource(index) && /[\w$]/.test(source[index])) index++;
-			tokens.push({ type: "identifier", value: source.slice(start, index), line: tokenLine });
+			createToken({ type: "identifier", value: source.slice(start, index), line: tokenLine });
 			continue;
 		}
 
@@ -487,7 +489,7 @@ function tokenize(file) {
 					const expressionStartTokenIndex = activeTemplate.expressionStartTokenIndex;
 
 					tokens[expressionStartTokenIndex].closedBy = tokenIndex;
-					tokens.push({
+					createToken({
 						type: "template-expression-end",
 						value: "}",
 						line,
@@ -515,7 +517,7 @@ function tokenize(file) {
 				line,
 			};
 
-			tokens.push(token);
+			createToken(token);
 			index++;
 
 			//handle opening brackets
@@ -549,7 +551,7 @@ function tokenize(file) {
 
 		// handle seperators
 		if (separators.has(character)) {
-			tokens.push({
+			createToken({
 				type: "separator",
 				value: character,
 				line,
@@ -592,14 +594,14 @@ function tokenize(file) {
 			}
 
 			if (matchedOperator) {
-				tokens.push(matchedOperator);
+				createToken(matchedOperator);
 				index += matchedOperator.value.length;
 				continue;
 			}
 		}
 
 		// handles other
-		tokens.push({
+		createToken({
 			type: "other",
 			value: character,
 			line,
@@ -609,6 +611,14 @@ function tokenize(file) {
 	return tokens;
 
 	//#region helper functions
+	/** Wrap a tokenizer result in the shared token class.
+	 * @param {{type: string, value: string, line: number, [property: string]: unknown}} tokenProperties
+	 * @returns {void}
+	 */
+	function createToken(tokenProperties) {
+		tokens.push(new SyntaxToken(tokenProperties));
+	}
+
 	function consumeLineBreak() {
 		const character = source[index];
 		if (!isLineBreak(source[index])) return false;
