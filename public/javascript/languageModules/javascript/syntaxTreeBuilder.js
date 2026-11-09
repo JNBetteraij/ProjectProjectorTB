@@ -1,6 +1,80 @@
 import { operatorPrecedence } from "./definitions.js";
+import { SyntaxToken } from "./SyntaxToken.js";
 
-/** @typedef {{type: string, value: string, line: number}} SyntaxToken */
+export const SyntaxTreeNodeType = Object.freeze({
+	File: "File",
+	EmptyStatement: "EmptyStatement",
+	DebuggerStatement: "DebuggerStatement",
+	ExpressionStatement: "ExpressionStatement",
+	BlockStatement: "BlockStatement",
+	ImportDeclaration: "ImportDeclaration",
+	ImportDefaultSpecifier: "ImportDefaultSpecifier",
+	ImportNamespaceSpecifier: "ImportNamespaceSpecifier",
+	ImportSpecifier: "ImportSpecifier",
+	ExportDeclaration: "ExportDeclaration",
+	ExportSpecifier: "ExportSpecifier",
+	VariableDeclaration: "VariableDeclaration",
+	VariableDeclarator: "VariableDeclarator",
+	FunctionExpression: "FunctionExpression",
+	FunctionDeclaration: "FunctionDeclaration",
+	ClassExpression: "ClassExpression",
+	ClassDeclaration: "ClassDeclaration",
+	StaticBlock: "StaticBlock",
+	MethodDefinition: "MethodDefinition",
+	PropertyDefinition: "PropertyDefinition",
+	IfStatement: "IfStatement",
+	ForStatement: "ForStatement",
+	ForInStatement: "ForInStatement",
+	ForOfStatement: "ForOfStatement",
+	WhileStatement: "WhileStatement",
+	DoWhileStatement: "DoWhileStatement",
+	ReturnStatement: "ReturnStatement",
+	BreakStatement: "BreakStatement",
+	ContinueStatement: "ContinueStatement",
+	ThrowStatement: "ThrowStatement",
+	TryStatement: "TryStatement",
+	CatchClause: "CatchClause",
+	SwitchStatement: "SwitchStatement",
+	SwitchCase: "SwitchCase",
+	WithStatement: "WithStatement",
+	LabeledStatement: "LabeledStatement",
+	RestElement: "RestElement",
+	ArrayPattern: "ArrayPattern",
+	ObjectPattern: "ObjectPattern",
+	Property: "Property",
+	AssignmentPattern: "AssignmentPattern",
+	TaggedTemplateExpression: "TaggedTemplateExpression",
+	UpdateExpression: "UpdateExpression",
+	ArrowFunctionExpression: "ArrowFunctionExpression",
+	ConditionalExpression: "ConditionalExpression",
+	SequenceExpression: "SequenceExpression",
+	AssignmentExpression: "AssignmentExpression",
+	LogicalExpression: "LogicalExpression",
+	BinaryExpression: "BinaryExpression",
+	AwaitExpression: "AwaitExpression",
+	YieldExpression: "YieldExpression",
+	UnaryExpression: "UnaryExpression",
+	MetaProperty: "MetaProperty",
+	Identifier: "Identifier",
+	ParenthesizedExpression: "ParenthesizedExpression",
+	ThisExpression: "ThisExpression",
+	Super: "Super",
+	ImportExpression: "ImportExpression",
+	PrivateIdentifier: "PrivateIdentifier",
+	MemberExpression: "MemberExpression",
+	OptionalMemberExpression: "OptionalMemberExpression",
+	OptionalCallExpression: "OptionalCallExpression",
+	CallExpression: "CallExpression",
+	NewExpression: "NewExpression",
+	SpreadElement: "SpreadElement",
+	ArrayExpression: "ArrayExpression",
+	ObjectExpression: "ObjectExpression",
+	TemplateLiteral: "TemplateLiteral",
+	TemplateElement: "TemplateElement",
+	Literal: "Literal",
+});
+
+/** @typedef {typeof SyntaxTreeNodeType[keyof typeof SyntaxTreeNodeType]} SyntaxTreeNodeTypeValue */
 
 //#region Syntax tree builder
 /** Build a syntax tree from tokenizer output using recursive-descent and precedence-climbing parsing.
@@ -9,11 +83,15 @@ import { operatorPrecedence } from "./definitions.js";
  * @returns {SyntaxTreeNode} The root syntax tree node.
  */
 export function buildSyntaxTree(tokens) {
+	if (!Array.isArray(tokens) || tokens.some((token) => !(token instanceof SyntaxToken))) {
+		throw new TypeError("buildSyntaxTree expects an array of SyntaxToken instances.");
+	}
+
 	let index = 0;
 	let lastIndex = null;
 	let nextNodeId = 0;
 
-	const file = createNode("File", 0, { body: [], sourceType: "module" });
+	const file = createNode(SyntaxTreeNodeType.File, 0, { body: [], sourceType: "module" });
 	while (!atEnd()) {
 		const start = index;
 		const statement = parseStatement();
@@ -23,6 +101,7 @@ export function buildSyntaxTree(tokens) {
 
 	return finish(file);
 
+	//#region Parse functions
 	/** Parse the next statement.
 	 * @returns {SyntaxTreeNode|null}
 	 */
@@ -30,7 +109,7 @@ export function buildSyntaxTree(tokens) {
 		const token = lookAhead();
 		if (!token) return null;
 		if (token.value === ";") {
-			const node = createNode("EmptyStatement");
+			const node = createNode(SyntaxTreeNodeType.EmptyStatement);
 			advance();
 			return finish(node);
 		}
@@ -45,22 +124,22 @@ export function buildSyntaxTree(tokens) {
 		if (token.value === "for") return parseForStatement();
 		if (token.value === "while") return parseWhileStatement();
 		if (token.value === "do") return parseDoWhileStatement();
-		if (token.value === "return") return parseJumpStatement("ReturnStatement");
-		if (token.value === "break") return parseJumpStatement("BreakStatement");
-		if (token.value === "continue") return parseJumpStatement("ContinueStatement");
+		if (token.value === "return") return parseJumpStatement(SyntaxTreeNodeType.ReturnStatement);
+		if (token.value === "break") return parseJumpStatement(SyntaxTreeNodeType.BreakStatement);
+		if (token.value === "continue") return parseJumpStatement(SyntaxTreeNodeType.ContinueStatement);
 		if (token.value === "throw") return parseThrowStatement();
 		if (token.value === "try") return parseTryStatement();
 		if (token.value === "switch") return parseSwitchStatement();
 		if (token.value === "with") return parseWithStatement();
 		if (token.value === "debugger") {
-			const node = createNode("DebuggerStatement");
+			const node = createNode(SyntaxTreeNodeType.DebuggerStatement);
 			advance();
 			consumeSemicolon();
 			return finish(node);
 		}
 		if (token.type === "identifier" && lookAhead(1)?.value === ":") return parseLabeledStatement();
 
-		const node = createNode("ExpressionStatement");
+		const node = createNode(SyntaxTreeNodeType.ExpressionStatement);
 		node.expression = parseExpression();
 		addChild(node, node.expression, "expression");
 		consumeSemicolon();
@@ -71,7 +150,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseBlock() {
-		const node = createNode("BlockStatement", index, { body: [] });
+		const node = createNode(SyntaxTreeNodeType.BlockStatement, index, { body: [] });
 		advance();
 		while (!atEnd() && lookAhead()?.value !== "}") {
 			const start = index;
@@ -87,7 +166,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseImportDeclaration() {
-		const node = createNode("ImportDeclaration", index, {
+		const node = createNode(SyntaxTreeNodeType.ImportDeclaration, index, {
 			specifiers: [],
 			source: null,
 			importKind: "value",
@@ -98,7 +177,7 @@ export function buildSyntaxTree(tokens) {
 			addChild(node, node.source, "source");
 		} else {
 			if (lookAhead()?.type === "identifier" && lookAhead()?.value !== "from") {
-				const specifier = createNode("ImportDefaultSpecifier", index, {
+				const specifier = createNode(SyntaxTreeNodeType.ImportDefaultSpecifier, index, {
 					local: parseIdentifier(),
 				});
 				addChild(specifier, specifier.local, "local");
@@ -107,7 +186,7 @@ export function buildSyntaxTree(tokens) {
 			}
 			if (match("*")) {
 				match("as");
-				const specifier = createNode("ImportNamespaceSpecifier", lastIndex, {
+				const specifier = createNode(SyntaxTreeNodeType.ImportNamespaceSpecifier, lastIndex, {
 					local: parseIdentifier(),
 				});
 				addChild(specifier, specifier.local, "local");
@@ -115,7 +194,7 @@ export function buildSyntaxTree(tokens) {
 			} else if (match("{")) {
 				while (!atEnd() && lookAhead()?.value !== "}") {
 					if (match(",")) continue;
-					const specifier = createNode("ImportSpecifier");
+					const specifier = createNode(SyntaxTreeNodeType.ImportSpecifier);
 					specifier.imported = parseIdentifier();
 					specifier.local = specifier.imported;
 					if (match("as")) specifier.local = parseIdentifier();
@@ -139,7 +218,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseExportDeclaration() {
-		const node = createNode("ExportDeclaration", index, {
+		const node = createNode(SyntaxTreeNodeType.ExportDeclaration, index, {
 			declaration: null,
 			specifiers: [],
 			source: null,
@@ -172,7 +251,7 @@ export function buildSyntaxTree(tokens) {
 		} else if (match("{")) {
 			while (!atEnd() && lookAhead()?.value !== "}") {
 				if (match(",")) continue;
-				const specifier = createNode("ExportSpecifier");
+				const specifier = createNode(SyntaxTreeNodeType.ExportSpecifier);
 				specifier.local = parseIdentifier();
 				specifier.exported = specifier.local;
 				if (match("as")) specifier.exported = parseIdentifier();
@@ -207,10 +286,10 @@ export function buildSyntaxTree(tokens) {
 	 */
 	function parseVariableDeclaration(consumeTerminator, inFor = false) {
 		const kind = lookAhead()?.value;
-		const node = createNode("VariableDeclaration", index, { kind, declarations: [] });
+		const node = createNode(SyntaxTreeNodeType.VariableDeclaration, index, { kind, declarations: [] });
 		advance();
 		do {
-			const declaration = createNode("VariableDeclarator");
+			const declaration = createNode(SyntaxTreeNodeType.VariableDeclarator);
 			declaration.id = parsePattern(false);
 			addChild(declaration, declaration.id, "id");
 			if (match("=")) {
@@ -238,7 +317,7 @@ export function buildSyntaxTree(tokens) {
 		}
 		match("function");
 		const generator = Boolean(match("*"));
-		const node = createNode(expression ? "FunctionExpression" : "FunctionDeclaration", start, {
+		const node = createNode(expression ? SyntaxTreeNodeType.FunctionExpression : SyntaxTreeNodeType.FunctionDeclaration, start, {
 			id: null,
 			params: [],
 			body: null,
@@ -260,7 +339,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseClass(expression = false) {
-		const node = createNode(expression ? "ClassExpression" : "ClassDeclaration", index, {
+		const node = createNode(expression ? SyntaxTreeNodeType.ClassExpression : SyntaxTreeNodeType.ClassDeclaration, index, {
 			id: null,
 			superClass: null,
 			body: [],
@@ -273,7 +352,6 @@ export function buildSyntaxTree(tokens) {
 		if (match("extends")) {
 			node.superClass = parseExpression(14);
 			addChild(node, node.superClass, "superClass");
-			addRelationship(node, "extends", node.superClass);
 		}
 		match("{");
 		while (!atEnd() && lookAhead()?.value !== "}") {
@@ -302,7 +380,7 @@ export function buildSyntaxTree(tokens) {
 		}
 		if (isStatic && lookAhead()?.value === "{") {
 			const block = parseBlock();
-			const node = createNode("StaticBlock", start, { body: block.body });
+			const node = createNode(SyntaxTreeNodeType.StaticBlock, start, { body: block.body });
 			for (const statement of block.body) addChild(node, statement, "body");
 			return finish(node);
 		}
@@ -317,7 +395,7 @@ export function buildSyntaxTree(tokens) {
 		}
 		const key = parsePropertyKey();
 		if (lookAhead()?.value === "(") {
-			const method = createNode("MethodDefinition", start, {
+			const method = createNode(SyntaxTreeNodeType.MethodDefinition, start, {
 				key: key.node,
 				kind,
 				static: isStatic,
@@ -333,7 +411,7 @@ export function buildSyntaxTree(tokens) {
 			addChild(method, method.body, "body");
 			return finish(method);
 		}
-		const field = createNode("PropertyDefinition", start, {
+		const field = createNode(SyntaxTreeNodeType.PropertyDefinition, start, {
 			key: key.node,
 			static: isStatic,
 			computed: key.computed,
@@ -368,7 +446,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseIfStatement() {
-		const node = createNode("IfStatement");
+		const node = createNode(SyntaxTreeNodeType.IfStatement);
 		advance();
 		match("(");
 		node.test = parseExpression();
@@ -388,7 +466,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseForStatement() {
-		const node = createNode("ForStatement", index, {
+		const node = createNode(SyntaxTreeNodeType.ForStatement, index, {
 			init: null,
 			test: null,
 			update: null,
@@ -407,7 +485,7 @@ export function buildSyntaxTree(tokens) {
 		}
 		if (["in", "of"].includes(lookAhead()?.value)) {
 			node.loopKind = lookAhead().value === "in" ? "for-in" : "for-of";
-			node.type = node.loopKind === "for-in" ? "ForInStatement" : "ForOfStatement";
+			node.type = node.loopKind === "for-in" ? SyntaxTreeNodeType.ForInStatement : SyntaxTreeNodeType.ForOfStatement;
 			node.left = node.init;
 			advance();
 			node.right = parseExpression(1);
@@ -434,7 +512,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseWhileStatement() {
-		const node = createNode("WhileStatement", index, { test: null, body: null });
+		const node = createNode(SyntaxTreeNodeType.WhileStatement, index, { test: null, body: null });
 		advance();
 		match("(");
 		node.test = parseExpression();
@@ -449,7 +527,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseDoWhileStatement() {
-		const node = createNode("DoWhileStatement", index, { test: null, body: null });
+		const node = createNode(SyntaxTreeNodeType.DoWhileStatement, index, { test: null, body: null });
 		advance();
 		node.body = parseStatement();
 		match("while");
@@ -463,7 +541,7 @@ export function buildSyntaxTree(tokens) {
 	}
 
 	/** Parse a return, break, or continue statement.
-	 * @param {string} type
+	 * @param {SyntaxTreeNodeTypeValue} type
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseJumpStatement(type) {
@@ -473,16 +551,15 @@ export function buildSyntaxTree(tokens) {
 		node.label = null;
 		node.argument = null;
 		if (
-			type === "ReturnStatement"
+			type === SyntaxTreeNodeType.ReturnStatement
 			&& lookAhead()
 			&& ![";", "}"].includes(lookAhead().value)
 			&& lookAhead().line === keyword?.line
 		) {
 			node.argument = parseExpression();
 			addChild(node, node.argument, "argument");
-			addRelationship(node, "returns", node.argument);
 		} else if (
-			["BreakStatement", "ContinueStatement"].includes(type)
+			[SyntaxTreeNodeType.BreakStatement, SyntaxTreeNodeType.ContinueStatement].includes(type)
 			&& lookAhead()?.type === "identifier"
 			&& lookAhead()?.line === keyword?.line
 		) {
@@ -497,7 +574,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseThrowStatement() {
-		const node = createNode("ThrowStatement");
+		const node = createNode(SyntaxTreeNodeType.ThrowStatement);
 		advance();
 		node.argument = parseExpression();
 		addChild(node, node.argument, "argument");
@@ -509,12 +586,12 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseTryStatement() {
-		const node = createNode("TryStatement", index, { block: null, handler: null, finalizer: null });
+		const node = createNode(SyntaxTreeNodeType.TryStatement, index, { block: null, handler: null, finalizer: null });
 		advance();
 		node.block = parseBlock();
 		addChild(node, node.block, "block");
 		if (match("catch")) {
-			const handler = createNode("CatchClause", lastIndex, { param: null, body: null });
+			const handler = createNode(SyntaxTreeNodeType.CatchClause, lastIndex, { param: null, body: null });
 			if (match("(")) {
 				handler.param = parsePattern();
 				addChild(handler, handler.param, "param");
@@ -536,14 +613,14 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseSwitchStatement() {
-		const node = createNode("SwitchStatement", index, { discriminant: null, cases: [] });
+		const node = createNode(SyntaxTreeNodeType.SwitchStatement, index, { discriminant: null, cases: [] });
 		advance();
 		match("(");
 		node.discriminant = parseExpression();
 		match(")");
 		match("{");
 		while (!atEnd() && !["}", null].includes(lookAhead()?.value)) {
-			const switchCase = createNode("SwitchCase", index, { test: null, consequent: [] });
+			const switchCase = createNode(SyntaxTreeNodeType.SwitchCase, index, { test: null, consequent: [] });
 			if (match("case")) {
 				switchCase.test = parseExpression();
 				addChild(switchCase, switchCase.test, "test");
@@ -566,7 +643,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseWithStatement() {
-		const node = createNode("WithStatement", index, { object: null, body: null });
+		const node = createNode(SyntaxTreeNodeType.WithStatement, index, { object: null, body: null });
 		advance();
 		match("(");
 		node.object = parseExpression();
@@ -581,7 +658,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseLabeledStatement() {
-		const node = createNode("LabeledStatement");
+		const node = createNode(SyntaxTreeNodeType.LabeledStatement);
 		node.label = parseIdentifier();
 		match(":");
 		node.body = parseStatement();
@@ -596,13 +673,13 @@ export function buildSyntaxTree(tokens) {
 	 */
 	function parsePattern(allowDefault = true) {
 		if (match("...")) {
-			const node = createNode("RestElement", lastIndex, { argument: null });
+			const node = createNode(SyntaxTreeNodeType.RestElement, lastIndex, { argument: null });
 			node.argument = parsePattern();
 			addChild(node, node.argument, "argument");
 			return finish(node);
 		}
 		if (lookAhead()?.value === "[") {
-			const node = createNode("ArrayPattern", index, { elements: [] });
+			const node = createNode(SyntaxTreeNodeType.ArrayPattern, index, { elements: [] });
 			advance();
 			while (!atEnd() && lookAhead()?.value !== "]") {
 				if (match(",")) {
@@ -618,13 +695,13 @@ export function buildSyntaxTree(tokens) {
 			return finish(node);
 		}
 		if (lookAhead()?.value === "{") {
-			const node = createNode("ObjectPattern", index, { properties: [] });
+			const node = createNode(SyntaxTreeNodeType.ObjectPattern, index, { properties: [] });
 			advance();
 			while (!atEnd() && lookAhead()?.value !== "}") {
 				if (match(",")) continue;
-				const property = createNode("Property");
+				const property = createNode(SyntaxTreeNodeType.Property);
 				if (match("...")) {
-					property.type = "RestElement";
+					property.type = SyntaxTreeNodeType.RestElement;
 					property.argument = parsePattern();
 					addChild(property, property.argument, "argument");
 				} else {
@@ -638,7 +715,7 @@ export function buildSyntaxTree(tokens) {
 						property.shorthand = true;
 					}
 					if (match("=")) {
-						const assignment = createNode("AssignmentPattern", key.node.startToken, {
+						const assignment = createNode(SyntaxTreeNodeType.AssignmentPattern, key.node.startToken, {
 							left: property.value,
 							right: parseExpression(2),
 						});
@@ -658,7 +735,7 @@ export function buildSyntaxTree(tokens) {
 		}
 		let pattern = parseIdentifier();
 		if (allowDefault && match("=")) {
-			const assignment = createNode("AssignmentPattern", pattern.startToken, {
+			const assignment = createNode(SyntaxTreeNodeType.AssignmentPattern, pattern.startToken, {
 				left: pattern,
 				right: parseExpression(2),
 			});
@@ -687,7 +764,7 @@ export function buildSyntaxTree(tokens) {
 			}
 			if (token.value === "`") {
 				const quasi = parseTemplateLiteral();
-				const node = createNode("TaggedTemplateExpression", left.startToken, { tag: left, quasi });
+				const node = createNode(SyntaxTreeNodeType.TaggedTemplateExpression, left.startToken, { tag: left, quasi });
 				addChild(node, left, "tag");
 				addChild(node, quasi, "quasi");
 				left = finish(node);
@@ -695,7 +772,7 @@ export function buildSyntaxTree(tokens) {
 			}
 			if (["++", "--"].includes(token.value) && token.line === previousToken()?.line) {
 				if (16 < minPrecedence) break;
-				const node = createNode("UpdateExpression", left.startToken, {
+				const node = createNode(SyntaxTreeNodeType.UpdateExpression, left.startToken, {
 					operator: token.value,
 					argument: left,
 					prefix: false,
@@ -707,9 +784,9 @@ export function buildSyntaxTree(tokens) {
 			}
 			if (token.value === "=>" && minPrecedence <= 2) {
 				const parameters =
-					left.type === "ParenthesizedExpression" ? left.expression?.elements || [left.expression] : [left];
+					left.type === SyntaxTreeNodeType.ParenthesizedExpression ? left.expression?.elements || [left.expression] : [left];
 				advance();
-				const node = createNode("ArrowFunctionExpression", left.startToken, {
+				const node = createNode(SyntaxTreeNodeType.ArrowFunctionExpression, left.startToken, {
 					params: parameters.filter(Boolean),
 					body: null,
 					async: Boolean(left.async),
@@ -732,7 +809,7 @@ export function buildSyntaxTree(tokens) {
 				const consequent = parseExpression(2, options);
 				match(":");
 				const alternate = parseExpression(2, options);
-				const node = createNode("ConditionalExpression", left.startToken, {
+				const node = createNode(SyntaxTreeNodeType.ConditionalExpression, left.startToken, {
 					test: left,
 					consequent,
 					alternate,
@@ -750,12 +827,12 @@ export function buildSyntaxTree(tokens) {
 			const rightAssociative = assignment || token.value === "**";
 			const right = parseExpression(precedence + (rightAssociative ? 0 : 1), options);
 			if (token.value === ",") {
-				if (left.type === "SequenceExpression") {
+				if (left.type === SyntaxTreeNodeType.SequenceExpression) {
 					left.expressions.push(right);
 					addChild(left, right, "expressions");
 					left = finish(left);
 				} else {
-					const node = createNode("SequenceExpression", left.startToken, {
+					const node = createNode(SyntaxTreeNodeType.SequenceExpression, left.startToken, {
 						expressions: [left, right],
 					});
 					addChild(node, left, "expressions");
@@ -765,14 +842,13 @@ export function buildSyntaxTree(tokens) {
 				continue;
 			}
 			const type = assignment
-				? "AssignmentExpression"
+				? SyntaxTreeNodeType.AssignmentExpression
 				: ["&&", "||", "??"].includes(token.value)
-					? "LogicalExpression"
-					: "BinaryExpression";
+					? SyntaxTreeNodeType.LogicalExpression
+					: SyntaxTreeNodeType.BinaryExpression;
 			const node = createNode(type, left.startToken, { operator: token.value, left, right });
 			addChild(node, left, "left");
 			addChild(node, right, "right");
-			if (type === "AssignmentExpression") addRelationship(node, "writes", left);
 			left = finish(node);
 		}
 		return left;
@@ -806,7 +882,7 @@ export function buildSyntaxTree(tokens) {
 				|| (next && ![";", "}", ")", "]", ","].includes(next.value) && next.line === token.line);
 			const argument = hasYieldArgument ? parseExpression(operator === "yield" ? 2 : 14) : null;
 			const node = createNode(
-				operator === "await" ? "AwaitExpression" : operator === "yield" ? "YieldExpression" : "UnaryExpression",
+				operator === "await" ? SyntaxTreeNodeType.AwaitExpression : operator === "yield" ? SyntaxTreeNodeType.YieldExpression : SyntaxTreeNodeType.UnaryExpression,
 				start,
 				{
 					operator,
@@ -822,7 +898,7 @@ export function buildSyntaxTree(tokens) {
 			const start = index;
 			advance();
 			const argument = parseExpression(14);
-			const node = createNode("UpdateExpression", start, {
+			const node = createNode(SyntaxTreeNodeType.UpdateExpression, start, {
 				operator: token.value,
 				argument,
 				prefix: true,
@@ -832,8 +908,8 @@ export function buildSyntaxTree(tokens) {
 		}
 		if (token.value === "new" && lookAhead(1)?.value === "." && lookAhead(2)?.value === "target") {
 			const start = index;
-			const node = createNode("MetaProperty", start);
-			node.meta = createNode("Identifier", start, { name: "new" });
+			const node = createNode(SyntaxTreeNodeType.MetaProperty, start);
+			node.meta = createNode(SyntaxTreeNodeType.Identifier, start, { name: "new" });
 			advance();
 			advance();
 			node.property = parseIdentifier();
@@ -845,7 +921,7 @@ export function buildSyntaxTree(tokens) {
 		if (token.value === "...") return parseSpreadElement();
 		if (token.value === "(") {
 			if (isArrowStart(index)) return parseArrowParameters(index, false);
-			const node = createNode("ParenthesizedExpression");
+			const node = createNode(SyntaxTreeNodeType.ParenthesizedExpression);
 			advance();
 			node.expression = parseExpression();
 			match(")");
@@ -857,12 +933,12 @@ export function buildSyntaxTree(tokens) {
 		if (token.value === "`") return parseTemplateLiteral();
 		if (token.value === "this" || token.value === "super") {
 			advance();
-			return finish(createNode(token.value === "this" ? "ThisExpression" : "Super", lastIndex));
+			return finish(createNode(token.value === "this" ? SyntaxTreeNodeType.ThisExpression : SyntaxTreeNodeType.Super, lastIndex));
 		}
 		if (token.value === "import" && lookAhead(1)?.value === ".") {
 			const start = index;
-			const node = createNode("MetaProperty", start);
-			node.meta = createNode("Identifier", start, { name: "import" });
+			const node = createNode(SyntaxTreeNodeType.MetaProperty, start);
+			node.meta = createNode(SyntaxTreeNodeType.Identifier, start, { name: "import" });
 			advance();
 			advance();
 			node.property = parseIdentifier();
@@ -876,14 +952,14 @@ export function buildSyntaxTree(tokens) {
 			advance();
 			const source = parseExpression(2);
 			match(")");
-			const node = createNode("ImportExpression", start, { source });
+			const node = createNode(SyntaxTreeNodeType.ImportExpression, start, { source });
 			addChild(node, source, "source");
 			return finish(node);
 		}
 		if (["true", "false", "null"].includes(token.value) || ["number", "string"].includes(token.type))
 			return parseLiteral();
 		if (token.type === "private-identifier") {
-			const node = createNode("PrivateIdentifier", index, { name: token.value.slice(1) });
+			const node = createNode(SyntaxTreeNodeType.PrivateIdentifier, index, { name: token.value.slice(1) });
 			advance();
 			return finish(node);
 		}
@@ -908,7 +984,7 @@ export function buildSyntaxTree(tokens) {
 			params.push(parsePattern());
 		}
 		match("=>");
-		const node = createNode("ArrowFunctionExpression", start, {
+		const node = createNode(SyntaxTreeNodeType.ArrowFunctionExpression, start, {
 			params,
 			body: null,
 			async,
@@ -934,7 +1010,7 @@ export function buildSyntaxTree(tokens) {
 		const optional = Boolean(match("?."));
 		if (!optional && match(".")) {
 			const property = lookAhead()?.type === "private-identifier" ? parsePrefix() : parseIdentifier();
-			const node = createNode("MemberExpression", object.startToken, {
+			const node = createNode(SyntaxTreeNodeType.MemberExpression, object.startToken, {
 				object,
 				property,
 				computed: false,
@@ -945,7 +1021,7 @@ export function buildSyntaxTree(tokens) {
 		}
 		if (optional && lookAhead()?.value !== "(" && lookAhead()?.value !== "[") {
 			const property = lookAhead()?.type === "private-identifier" ? parsePrefix() : parseIdentifier();
-			const node = createNode("OptionalMemberExpression", object.startToken, {
+			const node = createNode(SyntaxTreeNodeType.OptionalMemberExpression, object.startToken, {
 				object,
 				property,
 				computed: false,
@@ -958,7 +1034,7 @@ export function buildSyntaxTree(tokens) {
 		if (match("[")) {
 			const property = parseExpression();
 			match("]");
-			const node = createNode(optional ? "OptionalMemberExpression" : "MemberExpression", object.startToken, {
+			const node = createNode(optional ? SyntaxTreeNodeType.OptionalMemberExpression : SyntaxTreeNodeType.MemberExpression, object.startToken, {
 				object,
 				property,
 				computed: true,
@@ -977,14 +1053,13 @@ export function buildSyntaxTree(tokens) {
 				if (!match(",")) break;
 			}
 			match(")");
-			const node = createNode(optional ? "OptionalCallExpression" : "CallExpression", object.startToken, {
+			const node = createNode(optional ? SyntaxTreeNodeType.OptionalCallExpression : SyntaxTreeNodeType.CallExpression, object.startToken, {
 				callee: object,
 				arguments: args,
 				optional,
 			});
 			addChild(node, object, "callee");
 			for (const argument of args) addChild(node, argument, "arguments");
-			addRelationship(node, "calls", object);
 			return finish(node);
 		}
 		return object;
@@ -1007,10 +1082,9 @@ export function buildSyntaxTree(tokens) {
 			}
 			match(")");
 		}
-		const node = createNode("NewExpression", start, { callee, arguments: args });
+		const node = createNode(SyntaxTreeNodeType.NewExpression, start, { callee, arguments: args });
 		addChild(node, callee, "callee");
 		for (const argument of args) addChild(node, argument, "arguments");
-		addRelationship(node, "constructs", callee);
 		return finish(node);
 	}
 
@@ -1018,7 +1092,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseSpreadElement() {
-		const node = createNode("SpreadElement", index);
+		const node = createNode(SyntaxTreeNodeType.SpreadElement, index);
 		advance();
 		node.argument = parseExpression(2);
 		addChild(node, node.argument, "argument");
@@ -1029,7 +1103,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseArrayExpression() {
-		const node = createNode("ArrayExpression", index, { elements: [] });
+		const node = createNode(SyntaxTreeNodeType.ArrayExpression, index, { elements: [] });
 		advance();
 		while (!atEnd() && lookAhead()?.value !== "]") {
 			if (match(",")) {
@@ -1049,7 +1123,7 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseObjectExpression() {
-		const node = createNode("ObjectExpression", index, { properties: [] });
+		const node = createNode(SyntaxTreeNodeType.ObjectExpression, index, { properties: [] });
 		advance();
 		while (!atEnd() && lookAhead()?.value !== "}") {
 			if (match(",")) continue;
@@ -1065,9 +1139,9 @@ export function buildSyntaxTree(tokens) {
 				kind = lookAhead().value;
 				advance();
 			}
-			const property = createNode("Property");
+			const property = createNode(SyntaxTreeNodeType.Property);
 			if (match("...")) {
-				property.type = "SpreadElement";
+				property.type = SyntaxTreeNodeType.SpreadElement;
 				property.argument = parseExpression(2);
 				addChild(property, property.argument, "argument");
 			} else {
@@ -1112,7 +1186,7 @@ export function buildSyntaxTree(tokens) {
 			return { node, computed: true };
 		}
 		if (lookAhead()?.type === "private-identifier") {
-			const node = createNode("PrivateIdentifier");
+			const node = createNode(SyntaxTreeNodeType.PrivateIdentifier);
 			node.name = lookAhead()?.value.slice(1);
 			advance();
 			return { node: finish(node), computed: false };
@@ -1124,12 +1198,12 @@ export function buildSyntaxTree(tokens) {
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function parseTemplateLiteral() {
-		const node = createNode("TemplateLiteral", index, { quasis: [], expressions: [] });
+		const node = createNode(SyntaxTreeNodeType.TemplateLiteral, index, { quasis: [], expressions: [] });
 		advance();
 		while (!atEnd() && lookAhead()?.value !== "`") {
 			if (lookAhead()?.type === "template-text") {
 				const quasi = parseLiteral();
-				quasi.type = "TemplateElement";
+				quasi.type = SyntaxTreeNodeType.TemplateElement;
 				node.quasis.push(quasi);
 				addChild(node, quasi, "quasis");
 			} else if (match("${")) {
@@ -1168,7 +1242,7 @@ export function buildSyntaxTree(tokens) {
 			const numericRaw = raw.replaceAll("_", "");
 			value = numericRaw.endsWith("n") ? numericRaw.slice(0, -1) : Number(numericRaw);
 		}
-		const node = createNode("Literal", index, {
+		const node = createNode(SyntaxTreeNodeType.Literal, index, {
 			value,
 			raw,
 			literalType,
@@ -1182,7 +1256,7 @@ export function buildSyntaxTree(tokens) {
 	 */
 	function parseIdentifier() {
 		const token = lookAhead();
-		const node = createNode("Identifier", index, { name: token?.value });
+		const node = createNode(SyntaxTreeNodeType.Identifier, index, { name: token?.value });
 		advance();
 		return finish(node);
 	}
@@ -1197,6 +1271,7 @@ export function buildSyntaxTree(tokens) {
 
 		return operatorPrecedence[operator] ?? 0;
 	}
+	//#endregion
 
 	/** Check whether an arrow function starts at the given token index.
 	 * @param {number} index
@@ -1269,31 +1344,29 @@ export function buildSyntaxTree(tokens) {
 	}
 
 	/** Create a syntax node at the current token position.
-	 * @param {string} type
-	 * @param {number} [start=index]
+	 * @param {SyntaxTreeNodeTypeValue} type
+	 * @param {number|SyntaxToken|null} [start=index]
 	 * @param {Record<string, unknown>} [properties={}]
 	 * @returns {SyntaxTreeNode}
 	 */
 	function createNode(type, start = index, properties = {}) {
-		const node = new SyntaxTreeNode(type, start, { id: nextNodeId++, ...properties });
-		const token = tokens[start];
-		node.startLine = token?.line ?? null;
-		return node;
+		const startToken = start instanceof SyntaxToken ? start : start === null ? null : tokens[start] ?? null;
+		return new SyntaxTreeNode(type, startToken, { id: nextNodeId++, ...properties });
 	}
 
-	/** Set the final token and line positions for a node.
+	/** Set the final token reference for a node.
 	 * @param {SyntaxTreeNode|null} node
-	 * @param {number|null} [end=lastIndex]
+	 * @param {number|SyntaxToken|null} [end=lastIndex]
 	 * @returns {SyntaxTreeNode|null}
 	 */
 	function finish(node, end = lastIndex) {
 		if (!node) return null;
-		node.endToken = end ?? node.startToken;
-		node.endLine = tokens[node.endToken]?.line ?? node.startLine;
+		const endToken = end instanceof SyntaxToken ? end : end === null ? null : tokens[end] ?? null;
+		node.endToken = endToken ?? node.startToken;
 		return node;
 	}
 
-	/** Record a node as a structural child and add its relationship edge.
+	/** Record a direct child and its parent reference.
 	 * @param {SyntaxTreeNode|null} parent
 	 * @param {SyntaxTreeNode|null} child
 	 * @param {string} [role]
@@ -1301,20 +1374,10 @@ export function buildSyntaxTree(tokens) {
 	 */
 	function addChild(parent, child, role) {
 		if (!parent || !child) return;
-		parent.children.push(child);
+		parent.contains.push(child);
+		child.container = parent;
 		if (!role) return;
 		if (Array.isArray(parent[role]) && !parent[role].includes(child)) parent[role].push(child);
-		parent.relationships.push({ type: "contains", role, targetId: child.id });
-	}
-
-	/** Add a semantic relationship between syntax nodes.
-	 * @param {SyntaxTreeNode|null} node
-	 * @param {string} type
-	 * @param {SyntaxTreeNode|null} target
-	 * @returns {void}
-	 */
-	function addRelationship(node, type, target) {
-		if (node && target) node.relationships.push({ type, targetId: target.id });
 	}
 
 	/** Consume a semicolon if one is present.
@@ -1405,41 +1468,29 @@ export function buildSyntaxTree(tokens) {
 //#endregion Syntax tree builder
 
 /**
- * A relationship edge between syntax nodes. `targetId` refers to another node's stable `id`.
- *
- * @typedef {object} SyntaxNodeRelationship
- * @property {string} type Relationship kind, such as `contains`, `calls`, or `extends`.
- * @property {number} targetId ID of the related syntax node.
- * @property {string} [role] Child role for `contains` relationships.
- */
-
-/**
  * Base shape shared by all nodes returned from {@link buildSyntaxTree}.
  * Syntax-specific fields (such as `body`, `params`, and `operator`) are added by the parser.
  *
  * @property {string} type Node kind, for example `FunctionDeclaration` or `BinaryExpression`.
  * @property {number} id Stable, tree-local node identifier.
- * @property {number|null} startToken Index of the first token belonging to this node.
- * @property {number|null} endToken Index of the last token belonging to this node.
- * @property {number|null} startLine Source line of the first token.
- * @property {number|null} endLine Source line of the last token.
- * @property {SyntaxTreeNode[]} children Direct AST children in source/structural order.
- * @property {SyntaxNodeRelationship[]} relationships Typed edges to child or related nodes.
+ * @property {SyntaxToken|null} startToken First token belonging to this node.
+ * @property {SyntaxToken|null} endToken Last token belonging to this node.
+ * @property {SyntaxTreeNode[]} contains Direct child nodes.
+ * @property {SyntaxTreeNode|null} container Parent node, if present.
  */
 export class SyntaxTreeNode {
 	/**
-	 * @param {string} type AST node kind.
-	 * @param {number|null} [startToken] Index of the first token.
+	 * @param {SyntaxTreeNodeTypeValue} type AST node kind.
+	 * @param {SyntaxToken|null} [startToken] First token belonging to this node.
 	 * @param {Record<string, any>} [properties] Node-specific fields.
+	 * @returns {void}
 	 */
 	constructor(type, startToken = null, properties = {}) {
 		this.type = type;
 		this.startToken = startToken;
 		this.endToken = startToken;
-		this.startLine = null;
-		this.endLine = null;
-		this.relationships = [];
-		Object.defineProperty(this, "children", { value: [], writable: true });
+		this.contains = [];
+		this.container = null;
 		Object.assign(this, properties);
 	}
 }

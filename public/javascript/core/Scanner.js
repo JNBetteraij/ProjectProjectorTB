@@ -1,3 +1,5 @@
+import { File } from "./FileLoader.js";
+
 export class Scanner {
 	constructor(searches) {
 		if (!Array.isArray(searches)) {
@@ -30,10 +32,10 @@ export class Scanner {
 	async scan(fileEntries) {
 		const files = [];
 		for await (const entry of fileEntries) {
-			files.push({
+			files.push(new File({
 				...entry,
 				id: files.length + 1,
-			});
+			}));
 		}
 
 		for (const file of files) {

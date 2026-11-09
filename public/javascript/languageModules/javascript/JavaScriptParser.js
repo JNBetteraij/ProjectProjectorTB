@@ -12,8 +12,11 @@ import {
 	operatorStarts,
 	separators,
 } from "./definitions.js";
+import { SyntaxNode } from "./SyntaxNode.js";
+import { buildSyntaxNodes as buildSyntaxNodesFromTokens } from "./syntaxNodeBuilder.js";
 import { SyntaxToken } from "./SyntaxToken.js";
 import { buildSyntaxTree as buildSyntaxTreeFromTokens } from "./syntaxTreeBuilder.js";
+export { SyntaxNode } from "./SyntaxNode.js";
 export { SyntaxToken } from "./SyntaxToken.js";
 export { SyntaxTreeNode, SyntaxTreeNodeType } from "./syntaxTreeBuilder.js";
 
@@ -64,11 +67,28 @@ export class JavaScriptParser extends LanguageParserModule {
 		return tokens;
 	}
 
-	buildSyntaxTree(tokens) {
+	/** Build the existing AST and its associated higher-level nodes.
+	 * @param {SyntaxToken[]} tokens Tokenizer output.
+	 * @param {import("../../core/FileLoader.js").File} file Source file metadata.
+	 * @returns {import("./syntaxTreeBuilder.js").SyntaxTreeNode}
+	 */
+	buildSyntaxTree(tokens, file) {
 		const syntax = buildSyntaxTreeFromTokens(tokens);
 		console.log(syntax);
 
+		const nodes = this.buildSyntaxNodes(tokens, file);
+		console.log(nodes);
+
 		return syntax;
+	}
+
+	/** Build a flat syntax-node list and a high-level syntax tree from tokens.
+	 * @param {SyntaxToken[]} tokens Tokenizer output.
+	 * @param {import("../../core/FileLoader.js").File} file Source file metadata.
+	 * @returns {{nodes: SyntaxNode[], tree: SyntaxNode}}
+	 */
+	buildSyntaxNodes(tokens, file) {
+		return buildSyntaxNodesFromTokens(tokens, file);
 	}
 }
 

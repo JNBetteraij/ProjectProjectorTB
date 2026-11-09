@@ -24,7 +24,7 @@ export class LanguageParserModule {
 
 		const tokens = this.getTokens(file);
 
-		file.syntax = this.buildSyntaxTree(tokens);
+		file.syntax = this.buildSyntaxTree(tokens, file);
 		return file.syntax;
 	}
 

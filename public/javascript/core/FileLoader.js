@@ -1,5 +1,32 @@
 import { Path } from "./Path.js";
 
+/** @typedef {{name?: string, path?: Path, source?: string, sizeBytes?: number, id?: number, [property: string]: unknown}} FileProperties */
+
+export class File {
+	/** @type {string|undefined} */
+	name;
+
+	/** @type {Path|undefined} */
+	path;
+
+	/** @type {string|undefined} */
+	source;
+
+	/** @type {number|undefined} */
+	sizeBytes;
+
+	/** @type {number|undefined} */
+	id;
+
+	/**
+	 * @param {FileProperties} [properties={}] File metadata.
+	 * @returns {void}
+	 */
+	constructor(properties = {}) {
+		Object.assign(this, properties);
+	}
+}
+
 export class FileLoader {
 	constructor(extensions, excludedFolders = []) {
 		if (!Array.isArray(extensions)) {
@@ -19,12 +46,12 @@ export class FileLoader {
 
 	async *retrieve(files) {
 		for (const file of files) {
-			yield {
+			yield new File({
 				path: this.getProjectPath(file),
 				name: file.name,
 				sizeBytes: file.size,
 				source: await file.text(),
-			};
+			});
 		}
 	}
 
@@ -32,5 +59,3 @@ export class FileLoader {
 		return new Path(file.webkitRelativePath || file.name);
 	}
 }
-
-export class File {}
