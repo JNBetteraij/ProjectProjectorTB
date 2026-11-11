@@ -100,12 +100,24 @@
 					>
 						Class graph
 					</button>
+					<button
+						id="showCombinedGraphButton"
+						type="button"
+						aria-pressed="false"
+					>
+						Combined graph
+					</button>
 					<span
 						id="graphInstructions"
 						class="muted"
 					>
 						Drag canvas to pan · Wheel to zoom · Use a node handle to move it
 					</span>
+					<div id="combinedGraphLegend" class="combined-graph-legend" hidden>
+						<span class="combined-legend-item combined-legend-item--extends">Inheritance</span>
+						<span class="combined-legend-item combined-legend-item--import">Imports</span>
+						<span class="combined-legend-item combined-legend-item--export">Exports</span>
+					</div>
 					<button
 						id="fitGraphButton"
 						type="button"
@@ -221,6 +233,33 @@
 					</div>
 					<div id="emptyClassGraph" class="empty-graph">
 						Choose a project folder and scan it to see its class inheritance.
+					</div>
+				</div>
+				<div
+					id="combinedGraphViewport"
+					class="class-graph-viewport"
+					hidden
+					aria-label="Combined file, import, and inheritance graph"
+				>
+					<div id="combinedGraphWorld" class="class-graph-world">
+						<svg id="combinedGraphEdges" class="class-graph-edges" aria-hidden="true">
+							<defs>
+								<marker
+									id="combinedArrowhead"
+									markerWidth="10"
+									markerHeight="8"
+									refX="8"
+									refY="4"
+									orient="auto"
+								>
+									<path d="M 0 0 L 9 4 L 0 8 z"></path>
+								</marker>
+							</defs>
+						</svg>
+						<div id="combinedGraphNodes" class="combined-graph-nodes"></div>
+					</div>
+					<div id="emptyCombinedGraph" class="empty-graph">
+						Choose a project folder and scan it to see combined file and class relationships.
 					</div>
 				</div>
 			</section>
