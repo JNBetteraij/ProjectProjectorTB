@@ -177,7 +177,8 @@ function showGraph(graphKind) {
 	graphInstructions.textContent = showClasses
 		? "Drag canvas to pan · Wheel to zoom · Drag node handles to move classes"
 		: "Drag canvas to pan · Wheel to zoom · Use a node handle to move it";
-	if (showClasses) classGraphRenderer.fitIfPending();
+	if (showClasses) classGraphRenderer.onVisible();
+	else graphRenderer.onVisible();
 }
 
 //#endregion Graph view controls

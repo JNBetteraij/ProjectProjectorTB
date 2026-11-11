@@ -14,7 +14,6 @@ export class ClassGraphRenderer extends GraphDisplay {
 		super({ viewport, world: nodeLayer.parentElement, edgeSvg, nodeLayer, emptyState });
 		this.classes = [];
 		this.edges = [];
-		this.fitPending = false;
 		this.selectedId = null;
 	}
 
@@ -34,7 +33,6 @@ export class ClassGraphRenderer extends GraphDisplay {
 		this.edgeSvg.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
 		this.emptyState.hidden = graph.classes.length > 0;
 		this.edgeSvg.hidden = graph.classes.length === 0;
-		this.fitPending = true;
 		this.graph = graph;
 		this.setGraphNodes(
 			graph.classes,
@@ -51,19 +49,10 @@ export class ClassGraphRenderer extends GraphDisplay {
 			element.style.top = `${graphNode.position.y}px`;
 		}
 		this.resizeWorld();
-		this.drawEdges(graph.edges);
-		if (!this.viewport.hidden) this.fitIfPending();
-	}
-
-	/**
-	 * Fit the graph once it is visible, without resetting the view on later switches.
-	 *
-	 * @returns {void} No value is returned.
-	 */
-	fitIfPending() {
-		if (!this.fitPending) return;
-		this.fit();
-		this.fitPending = false;
+		this.runWhenVisible(() => {
+			this.resizeWorld();
+			this.fit();
+		});
 	}
 
 	/**

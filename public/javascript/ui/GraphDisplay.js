@@ -38,12 +38,40 @@ export class GraphDisplay {
 		this.edgeElements = new Map();
 		this.pan = { x: 0, y: 0, scale: 1 };
 		this.dragState = null;
+		this.pendingVisibleCallback = null;
 
 		this.viewport.addEventListener("pointerdown", (event) => this.startPan(event));
 		this.viewport.addEventListener("pointermove", (event) => this.movePointer(event));
 		this.viewport.addEventListener("pointerup", (event) => this.endPointer(event));
 		this.viewport.addEventListener("pointercancel", () => this.endPointer());
 		this.viewport.addEventListener("wheel", (event) => this.zoom(event), { passive: false });
+	}
+
+	/**
+	 * Run graph setup now when visible, or defer it until the viewport is shown.
+	 *
+	 * @param {() => void} callback Setup to run after the graph can be measured.
+	 * @returns {void} No value is returned.
+	 */
+	runWhenVisible(callback) {
+		if (this.viewport.hidden) {
+			this.pendingVisibleCallback = callback;
+			return;
+		}
+		this.pendingVisibleCallback = null;
+		callback();
+	}
+
+	/**
+	 * Run setup deferred while this graph's viewport was hidden.
+	 *
+	 * @returns {void} No value is returned.
+	 */
+	onVisible() {
+		if (this.viewport.hidden || !this.pendingVisibleCallback) return;
+		const callback = this.pendingVisibleCallback;
+		this.pendingVisibleCallback = null;
+		callback();
 	}
 
 	/**

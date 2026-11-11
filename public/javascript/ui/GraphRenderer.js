@@ -64,7 +64,10 @@ export class GraphRenderer extends GraphDisplay {
 		this.drawNodes(graph.files);
 		this.drawEdges(graph.edges);
 		this.resizeWorld();
-		this.fit();
+		this.runWhenVisible(() => {
+			this.resizeWorld();
+			this.fit();
+		});
 		this.updateLocalControls();
 	}
 
