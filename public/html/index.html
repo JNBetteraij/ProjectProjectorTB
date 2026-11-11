@@ -6,6 +6,14 @@
 			name="viewport"
 			content="width=device-width, initial-scale=1"
 		/>
+		<script type="importmap">
+			{
+				"imports": {
+					"acorn": "../../node_modules/acorn/dist/acorn.mjs",
+					"acorn-walk": "../../node_modules/acorn-walk/dist/walk.mjs"
+				}
+			}
+		</script>
 		<script
 			type="module"
 			src="../javascript/app.js"
@@ -78,8 +86,26 @@
 				aria-label="Import relationship graph"
 			>
 				<div class="graph-toolbar">
-					<span>Import graph</span>
-					<span class="muted">Drag canvas to pan · Wheel to zoom · Use a node handle to move it</span>
+					<button
+						id="showImportGraphButton"
+						type="button"
+						aria-pressed="true"
+					>
+						Import graph
+					</button>
+					<button
+						id="showClassGraphButton"
+						type="button"
+						aria-pressed="false"
+					>
+						Class graph
+					</button>
+					<span
+						id="graphInstructions"
+						class="muted"
+					>
+						Drag canvas to pan · Wheel to zoom · Use a node handle to move it
+					</span>
 					<button
 						id="fitGraphButton"
 						type="button"
@@ -167,6 +193,36 @@
 						</button>
 					</div>
 				</div>
+				<div
+					id="classGraphViewport"
+					class="class-graph-viewport"
+					hidden
+					aria-label="Class inheritance graph"
+				>
+					<div
+						id="classGraphWorld"
+						class="class-graph-world"
+					>
+						<svg id="classGraphEdges" class="class-graph-edges" aria-hidden="true">
+							<defs>
+								<marker
+									id="classArrowhead"
+									markerWidth="10"
+									markerHeight="8"
+									refX="8"
+									refY="4"
+									orient="auto"
+								>
+									<path d="M 0 0 L 9 4 L 0 8 z"></path>
+								</marker>
+							</defs>
+						</svg>
+						<div id="classGraphNodes" class="class-graph-nodes"></div>
+					</div>
+					<div id="emptyClassGraph" class="empty-graph">
+						Choose a project folder and scan it to see its class inheritance.
+					</div>
+				</div>
 			</section>
 		</main>
 
@@ -221,16 +277,6 @@
 						type="text"
 						placeholder=""
 						value="public/javascript/solvers/"
-					/>
-				</label>
-				<label>
-					File extensions (comma-separated)
-					<input
-						disabled
-						id="extensionsInput"
-						type="text"
-						placeholder=".js,.jsx,.mjs,.cjs"
-						value=""
 					/>
 				</label>
 			</form>

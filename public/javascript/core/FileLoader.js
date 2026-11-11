@@ -23,15 +23,15 @@ export class FileLoader {
 	/** Filter and read selected browser files into project File instances.
 	 *
 	 * @param {Array<{ name: string, size?: number, webkitRelativePath?: string, text: () => Promise<string> }>} files Browser file objects to inspect and read.
-	 * @param {{ extensions?: string[], excludedFolders?: string[] }} [options={}] Optional filter overrides.
+	 * @param {{ excludedFolders?: string[] }} [options={}] Optional folder exclusions.
 	 * @returns {Promise<File[]>} Matching project files with their source text loaded.
 	 */
-	async loadFiles(files, { extensions = this.extensions, excludedFolders = this.excludedFolders } = {}) {
+	async loadFiles(files, { excludedFolders = this.excludedFolders } = {}) {
 		const matchingFiles = files
 			.filter((file) => {
 				const name = file.name.toLowerCase();
 				if (excludedFolders.some((folder) => (file.webkitRelativePath || "").startsWith(folder))) return false;
-				return extensions.some((extension) => name.endsWith(extension));
+				return this.extensions.some((extension) => name.endsWith(extension));
 			});
 
 		return Promise.all(

@@ -72,6 +72,17 @@ export class ScopeListRenderer {
 				})),
 			),
 		);
+		details.append(
+			this.renderItemList(
+				"Classes",
+				file.classes.map((classRecord) => {
+					const baseName = classRecord.extends
+						? classRecord.extends.name
+						: classRecord.extendsName;
+					return `${classRecord.name}${baseName ? ` extends ${baseName}` : ""} · ${classRecord.methods.length} methods · ${classRecord.properties.length} properties · ${classRecord.accessors.length} accessors`;
+				}),
+			),
+		);
 		const linkedScopes = file.linkedScopes.map((scope) => ({ path: scope.path.full }));
 		details.append(this.renderItemList("Imported by", linkedScopes));
 

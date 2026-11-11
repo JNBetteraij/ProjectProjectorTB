@@ -256,6 +256,10 @@ button:disabled {
 }
 
 .graph-toolbar button {
+	margin-left: 0;
+}
+
+.graph-toolbar #fitGraphButton {
 	margin-left: auto;
 }
 
@@ -273,6 +277,116 @@ button:disabled {
 
 .graph-viewport:active {
 	cursor: grabbing;
+}
+
+.class-graph-viewport {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	background-color: Canvas;
+	background-image: radial-gradient(color-mix(in srgb, CanvasText 18%, transparent) 1px, transparent 1px);
+	background-size: 22px 22px;
+	cursor: grab;
+	touch-action: none;
+}
+
+.class-graph-viewport:active {
+	cursor: grabbing;
+}
+
+.class-graph-world {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	transform-origin: 0 0;
+}
+
+.class-graph-viewport[hidden] {
+	display: none;
+}
+
+.class-graph-edges {
+	position: absolute;
+	top: 0;
+	left: 0;
+	overflow: visible;
+	pointer-events: none;
+}
+
+.class-graph-edges marker path {
+	fill: context-stroke;
+}
+
+.class-graph-nodes {
+	position: relative;
+}
+
+.class-graph-node {
+	position: absolute;
+	width: 300px;
+	min-height: 132px;
+	padding: 0.75rem;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.6rem;
+	background: var(--panel-bg);
+	box-shadow: 0 3px 14px rgba(0, 0, 0, 0.1333333333);
+	overflow-wrap: anywhere;
+	pointer-events: auto;
+	z-index: 1;
+}
+
+.class-graph-node.selected {
+	z-index: 4;
+	outline: 3px solid var(--selected);
+}
+
+.class-graph-node.incoming {
+	border-color: var(--incoming);
+	background: color-mix(in srgb, var(--incoming) 13%, Canvas);
+	z-index: 3;
+}
+
+.class-graph-node.outgoing {
+	border-color: var(--outgoing);
+	background: color-mix(in srgb, var(--outgoing) 13%, Canvas);
+	z-index: 3;
+}
+
+.class-graph-node.dragged {
+	z-index: 4;
+}
+
+.class-graph-node-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+}
+
+.class-graph-node h2 {
+	flex: 1;
+	font-size: 1rem;
+	user-select: none;
+}
+
+.class-graph-node ul {
+	margin: 0.3rem 0;
+	padding-left: 1.2rem;
+	font-size: 0.82rem;
+}
+
+.class-graph-file,
+.class-graph-base,
+.class-graph-derived {
+	margin-top: 0.25rem;
+	font-size: 0.82rem;
+}
+
+.class-graph-file,
+.class-graph-derived {
+	opacity: 0.72;
 }
 
 .local-graph-controls {

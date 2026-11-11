@@ -28,6 +28,8 @@ export class File {
 		this.name = name;
 		this.sizeBytes = Number.isFinite(sizeBytes) ? Number(sizeBytes) : 0;
 		this.source = typeof source === "string" ? source : "";
+		this.analysis = null;
+		this.declarations = [];
 	}
 
 	/**

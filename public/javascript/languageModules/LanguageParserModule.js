@@ -19,17 +19,4 @@ export class LanguageParserModule {
 		throw new TypeError(`${this.constructor.name} must implement resolveImportPath().`);
 	}
 
-	getTokens(file) {
-		if (file.tokens) return file.tokens;
-
-		const tokens = this.tokenize(file);
-
-		//cache tokens on file
-		file.tokens = tokens;
-		return tokens;
-	}
-
-	tokenize(file) {
-		throw new TypeError(`${this.constructor.name} must implement tokenize().`);
-	}
 }
