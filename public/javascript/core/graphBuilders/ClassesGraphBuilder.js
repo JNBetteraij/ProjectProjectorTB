@@ -1,7 +1,7 @@
 //#region Class graph
 
 /** Resolve project class bases and build inheritance edges between declarations. */
-export class ClassGraphBuilder {
+export class ClassesGraphBuilder {
 	/**
 	 * Link each class to its resolved base and collect the classes derived from it.
 	 *

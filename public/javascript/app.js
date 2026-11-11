@@ -1,6 +1,6 @@
 import { FileLoader } from "./core/FileLoader.js";
-import { ClassGraphBuilder } from "./core/ClassGraphBuilder.js";
-import { GraphBuilder } from "./core/GraphBuilder.js";
+import { ClassesGraphBuilder } from "./core/graphBuilders/ClassesGraphBuilder.js";
+import { ImportsGraphBuilder } from "./core/graphBuilders/ImportsGraphBuilder.js";
 import { Scanner } from "./core/Scanner.js";
 import { ClassSearch } from "./core/Searches/ClassSearch.js";
 import { ExportSearch } from "./core/Searches/ExportSearch.js";
@@ -35,8 +35,8 @@ const scanner = new Scanner([
 	new ExportSearch(languageParser),
 	new ClassSearch(languageParser),
 ]);
-const graphBuilder = new GraphBuilder();
-const classGraphBuilder = new ClassGraphBuilder();
+const graphBuilder = new ImportsGraphBuilder();
+const classGraphBuilder = new ClassesGraphBuilder();
 const graphRenderer = new GraphRenderer({
 	viewport: document.querySelector("#graphViewport"),
 	world: document.querySelector("#graphWorld"),

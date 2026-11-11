@@ -1,4 +1,4 @@
-export class GraphBuilder {
+export class ImportsGraphBuilder {
 	build(files) {
 		const edgesByPair = new Map();
 		for (const file of files) {
