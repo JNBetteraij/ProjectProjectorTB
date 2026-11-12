@@ -295,42 +295,6 @@ button:disabled {
 	cursor: grabbing;
 }
 
-.combined-graph-legend {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.7rem;
-	font-size: 0.82rem;
-}
-
-.combined-graph-legend[hidden] {
-	display: none;
-}
-
-.combined-legend-item::before {
-	display: inline-block;
-	width: 1.2rem;
-	margin-right: 0.3rem;
-	border-top: 3px solid currentColor;
-	content: "";
-	vertical-align: middle;
-}
-
-.combined-legend-item--extends {
-	color: #8854d0;
-}
-
-.combined-legend-item--import {
-	color: #df8b24;
-}
-
-.combined-legend-item--import::before {
-	border-top-style: dashed;
-}
-
-.combined-legend-item--export {
-	color: #3488f5;
-}
-
 .class-graph-world {
 	position: absolute;
 	top: 0;
@@ -393,52 +357,6 @@ button:disabled {
 
 .class-graph-node.dragged {
 	z-index: 4;
-}
-
-.combined-graph-nodes {
-	position: relative;
-}
-
-.combined-file-node {
-	position: absolute;
-	width: 340px;
-	padding: 0.65rem;
-	border: 1px solid var(--panel-border);
-	border-radius: 0.6rem;
-	background: var(--panel-bg);
-	box-shadow: 0 3px 14px rgba(0, 0, 0, 0.1333333333);
-	overflow-wrap: anywhere;
-	pointer-events: auto;
-	z-index: 1;
-}
-
-.combined-file-node > h2 {
-	margin: 0 0 0.5rem;
-	font-size: 0.9rem;
-}
-
-.combined-class-list {
-	display: grid;
-	gap: 0.45rem;
-}
-
-.combined-class-node {
-	position: relative;
-	padding: 0.4rem 0.5rem;
-	border: 1px solid var(--panel-border);
-	border-radius: 0.4rem;
-	background: color-mix(in srgb, CanvasText 4%, Canvas);
-	pointer-events: auto;
-}
-
-.combined-class-node h3 {
-	font-size: 0.84rem;
-}
-
-.combined-class-node p {
-	margin-top: 0.1rem;
-	font-size: 0.76rem;
-	opacity: 0.72;
 }
 
 .class-graph-node-header {
@@ -539,19 +457,6 @@ button:disabled {
 .graph-edge.incoming-edge {
 	stroke: var(--incoming);
 	stroke-width: 3.5;
-}
-
-.combined-edge--extends {
-	stroke: #8854d0;
-}
-
-.combined-edge--import {
-	stroke: #df8b24;
-	stroke-dasharray: 8 4;
-}
-
-.combined-edge--export {
-	stroke: #3488f5;
 }
 
 .graph-nodes {

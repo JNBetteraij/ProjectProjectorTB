@@ -8,7 +8,6 @@ import { ImportSearch } from "./core/Searches/ImportSearch.js";
 import { JavaScriptParser } from "./languageModules/javascript/JavaScriptParser.js";
 import { GraphRenderer } from "./ui/GraphRenderer.js";
 import { ClassGraphRenderer } from "./ui/ClassGraphRenderer.js";
-import { CombinedGraphRenderer } from "./ui/CombinedGraphRenderer.js";
 import { ScopeListRenderer } from "./ui/ScopeListRenderer.js";
 
 const controlsDialog = document.querySelector("#controlsDialog");
@@ -23,12 +22,9 @@ const closeControlsButton = document.querySelector("#closeControlsButton");
 const fitGraphButton = document.querySelector("#fitGraphButton");
 const showImportGraphButton = document.querySelector("#showImportGraphButton");
 const showClassGraphButton = document.querySelector("#showClassGraphButton");
-const showCombinedGraphButton = document.querySelector("#showCombinedGraphButton");
 const importGraphViewport = document.querySelector("#graphViewport");
 const classGraphViewport = document.querySelector("#classGraphViewport");
-const combinedGraphViewport = document.querySelector("#combinedGraphViewport");
 const graphInstructions = document.querySelector("#graphInstructions");
-const combinedGraphLegend = document.querySelector("#combinedGraphLegend");
 const statusElement = document.querySelector("#status");
 const projectSummary = document.querySelector("#projectSummary");
 
@@ -60,13 +56,6 @@ const classGraphRenderer = new ClassGraphRenderer({
 	nodeLayer: document.querySelector("#classGraphNodes"),
 	emptyState: document.querySelector("#emptyClassGraph"),
 });
-const combinedGraphRenderer = new CombinedGraphRenderer({
-	viewport: combinedGraphViewport,
-	world: document.querySelector("#combinedGraphWorld"),
-	edgeSvg: document.querySelector("#combinedGraphEdges"),
-	nodeLayer: document.querySelector("#combinedGraphNodes"),
-	emptyState: document.querySelector("#emptyCombinedGraph"),
-});
 const scopeListRenderer = new ScopeListRenderer(document.querySelector("#scopeList"), {
 	onSelectFile: (fileId) => graphRenderer.selectFile(fileId),
 	onFocusFile: (fileId) => graphRenderer.focusFile(fileId),
@@ -80,7 +69,6 @@ closeControlsButton.addEventListener("click", () => controlsDialog.close());
 fitGraphButton.addEventListener("click", fitActiveGraph);
 showImportGraphButton.addEventListener("click", () => showGraph("imports"));
 showClassGraphButton.addEventListener("click", () => showGraph("classes"));
-showCombinedGraphButton.addEventListener("click", () => showGraph("combined"));
 graphRenderer.showLocalButton.addEventListener("click", () => graphRenderer.showLocal());
 graphRenderer.showFullGraphButton.addEventListener("click", () => graphRenderer.showFullGraph());
 graphRenderer.showDependenciesButton.addEventListener("click", () => graphRenderer.showDependencies());
@@ -127,11 +115,6 @@ async function scanSelectedFiles() {
 		scanResults = graph.files;
 		graphRenderer.render(graph);
 		classGraphRenderer.render(classGraph);
-		combinedGraphRenderer.render({
-			files: graph.files,
-			fileEdges: graph.edges,
-			classEdges: classGraph.edges,
-		});
 		scopeListRenderer.render(graph.groups);
 		projectSummary.textContent = `${graph.files.length} files · ${graph.edges.length} import connections · ${classGraph.classes.length} classes`;
 		statusElement.textContent = `Finished scanning ${graph.files.length} file(s).`;
@@ -178,30 +161,23 @@ function createJsonExport() {
 }
 
 /**
- * Switch between the import, inheritance, and combined graph views.
+ * Switch between the existing file import graph and the class inheritance graph.
  *
- * @param {"imports" | "classes" | "combined"} graphKind Graph view to display.
+ * @param {"imports" | "classes"} graphKind Graph view to display.
  * @returns {void} No value is returned.
  */
 //#region Graph view controls
 
 function showGraph(graphKind) {
 	const showClasses = graphKind === "classes";
-	const showCombined = graphKind === "combined";
 	importGraphViewport.hidden = showClasses;
 	classGraphViewport.hidden = !showClasses;
-	combinedGraphViewport.hidden = !showCombined;
-	showImportGraphButton.setAttribute("aria-pressed", String(!showClasses && !showCombined));
+	showImportGraphButton.setAttribute("aria-pressed", String(!showClasses));
 	showClassGraphButton.setAttribute("aria-pressed", String(showClasses));
-	showCombinedGraphButton.setAttribute("aria-pressed", String(showCombined));
-	combinedGraphLegend.hidden = !showCombined;
 	graphInstructions.textContent = showClasses
 		? "Drag canvas to pan · Wheel to zoom · Drag node handles to move classes"
-		: showCombined
-			? "Drag canvas to pan · Wheel to zoom · Hover connections for details"
-			: "Drag canvas to pan · Wheel to zoom · Use a node handle to move it";
+		: "Drag canvas to pan · Wheel to zoom · Use a node handle to move it";
 	if (showClasses) classGraphRenderer.onVisible();
-	else if (showCombined) combinedGraphRenderer.onVisible();
 	else graphRenderer.onVisible();
 }
 
@@ -213,9 +189,8 @@ function showGraph(graphKind) {
  * @returns {void} No value is returned.
  */
 function fitActiveGraph() {
-	if (!importGraphViewport.hidden) graphRenderer.fit();
-	else if (!classGraphViewport.hidden) classGraphRenderer.fit();
-	else combinedGraphRenderer.fit();
+	if (classGraphViewport.hidden) graphRenderer.fit();
+	else classGraphRenderer.fit();
 }
 
 function downloadJson() {

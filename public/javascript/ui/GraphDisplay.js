@@ -80,10 +80,9 @@ export class GraphDisplay {
 	 * @param {object[]} nodes Domain records that will become graph nodes.
 	 * @param {object[]} edges Directed edges between node IDs.
 	 * @param {(node: object) => string} getLabel Stable display label for row ordering.
-	 * @param {(node: object) => number} [getHeight] Optional node height used to space variable-height nodes.
-	 * @returns {Map<string | number, object>} Node positions indexed by node ID.
+	 * @returns {Map<number, object>} Node positions indexed by node ID.
 	 */
-	layoutNodes(nodes, edges, getLabel = (node) => String(node.id), getHeight = () => nodeHeight) {
+	layoutNodes(nodes, edges, getLabel = (node) => String(node.id)) {
 		const positions = new Map();
 		const connectedNodes = new Set(edges.flatMap((edge) => [edge.sourceId, edge.targetId]));
 		const { groups, orphans } = this.getConnectedGroups(nodes, edges, connectedNodes);
@@ -105,20 +104,18 @@ export class GraphDisplay {
 			let groupHeight = 0;
 			for (const [column, columnNodes] of rowsByColumn) {
 				columnNodes.sort((first, second) => getLabel(first).localeCompare(getLabel(second)));
-				let nodeY = componentTop + 70;
+				groupHeight = Math.max(groupHeight, columnNodes.length * rowGap);
 				columnNodes.forEach((node, row) => {
 					const x = 120 + (columnOffset + column) * columnGap;
 					positions.set(node.id, {
 						nodeId: node.id,
 						x,
-						y: nodeY,
+						y: componentTop + 70 + row * rowGap,
 						row,
 						columnX: x,
 						gridTop: componentTop + 70,
 					});
-					nodeY += Math.max(rowGap, getHeight(node) + rowGap - nodeHeight);
 				});
-				groupHeight = Math.max(groupHeight, nodeY - componentTop - 70);
 			}
 			componentTop += groupHeight + 220;
 			columnOffset += maxColumn + 1;
@@ -126,7 +123,6 @@ export class GraphDisplay {
 
 		if (orphans.length) {
 			const columnCount = Math.max(1, Math.min(5, Math.ceil(Math.sqrt(orphans.length))));
-			let orphanTop = componentTop + 70;
 			orphans.forEach((node, index) => {
 				const row = Math.floor(index / columnCount);
 				const column = index % columnCount;
@@ -134,16 +130,11 @@ export class GraphDisplay {
 				positions.set(node.id, {
 					nodeId: node.id,
 					x,
-					y: orphanTop,
+					y: componentTop + 70 + row * rowGap,
 					row,
 					columnX: x,
 					gridTop: componentTop + 70,
 				});
-				if (column === columnCount - 1 || index === orphans.length - 1) {
-					const rowStart = index - column;
-					const rowHeight = Math.max(...orphans.slice(rowStart, index + 1).map(getHeight));
-					orphanTop += Math.max(rowGap, rowHeight + rowGap - nodeHeight);
-				}
 			});
 		}
 		return positions;
@@ -230,13 +221,10 @@ export class GraphDisplay {
 	 * Draw graph connections using node-defined anchors and shared orthogonal routing.
 	 *
 	 * @param {object[]} edges Directed edge records.
-	 * @param {{ markerId?: string, title?: (edge: object) => string, selectedLayer?: SVGSVGElement, connectionTypes?: object }} [options={}] Connection rendering options and per-type styling.
+	 * @param {{ markerId?: string, title?: (edge: object) => string, selectedLayer?: SVGSVGElement }} [options={}] Connection rendering options.
 	 * @returns {void} No value is returned.
 	 */
-	drawConnections(
-		edges,
-		{ markerId = "arrowhead", title = () => "", selectedLayer = null, connectionTypes = {} } = {},
-	) {
+	drawConnections(edges, { markerId = "arrowhead", title = () => "", selectedLayer = null } = {}) {
 		this.edgeSvg.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
 		selectedLayer?.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
 		this.edgeElements.clear();
@@ -249,31 +237,27 @@ export class GraphDisplay {
 			const target = this.graphNodes.get(edge.targetId);
 			if (!source || !target) continue;
 
-			const connectionType = connectionTypes[edge.type] || {};
-			const start = source.getConnectionPoint(connectionType.sourceDirection || "outgoing", this.pan.scale);
-			const end = target.getConnectionPoint(connectionType.targetDirection || "incoming", this.pan.scale);
-			const points = createConnectionRoute(start, end, connectionType.routeOffset || 0);
+			const start = source.getConnectionPoint("outgoing", this.pan.scale);
+			const end = target.getConnectionPoint("incoming", this.pan.scale);
+			const points = createConnectionRoute(start, end);
 			const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 			path.setAttribute("d", createOrthogonalPath(points));
 			path.classList.add("graph-edge");
-			if (connectionType.className) path.classList.add(connectionType.className);
 			path.dataset.sourceId = edge.sourceId;
 			path.dataset.targetId = edge.targetId;
-			path.dataset.edgeKey = edge.id || `${edge.sourceId}:${edge.targetId}`;
-			const edgeMarkerId = connectionType.markerId || markerId;
-			const pointKey = `${edgeMarkerId}:${end.x}:${end.y}`;
+			path.dataset.edgeKey = `${edge.sourceId}:${edge.targetId}`;
+			const pointKey = `${end.x}:${end.y}`;
 			if (!pathsByIncomingPoint.has(pointKey)) pathsByIncomingPoint.set(pointKey, []);
-			pathsByIncomingPoint.get(pointKey).push({ path, markerId: edgeMarkerId });
+			pathsByIncomingPoint.get(pointKey).push(path);
 			const edgeTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
-			edgeTitle.textContent = connectionType.title ? connectionType.title(edge) : title(edge);
+			edgeTitle.textContent = title(edge);
 			path.append(edgeTitle);
 			layer.append(path);
 			this.edgeElements.set(path.dataset.edgeKey, path);
 		}
 
 		for (const paths of pathsByIncomingPoint.values()) {
-			const { path, markerId: pathMarkerId } = paths.at(-1);
-			path.setAttribute("marker-end", `url(#${pathMarkerId})`);
+			paths.at(-1)?.setAttribute("marker-end", `url(#${markerId})`);
 		}
 		this.edgeSvg.append(layer);
 		if (selectedLayer) {
@@ -451,10 +435,7 @@ export class GraphDisplay {
 	 * @returns {void} No value is returned.
 	 */
 	startPan(event) {
-		if (
-			event.button !== 0
-			|| event.target.closest(".graph-node, .class-graph-node, .combined-file-node, .local-graph-controls")
-		) return;
+		if (event.button !== 0 || event.target.closest(".graph-node, .class-graph-node, .local-graph-controls")) return;
 		this.dragState = {
 			type: "pan",
 			pointerId: event.pointerId,
@@ -698,8 +679,8 @@ function getColumnRanks(nodes, edges) {
  * @param {{ x: number, y: number }} end Incoming anchor coordinates.
  * @returns {{ x: number, y: number }[]} Bend points connecting the two anchors.
  */
-function createConnectionRoute(start, end, offset = 0) {
-	const middleX = (start.x + end.x) / 2 + offset;
+function createConnectionRoute(start, end) {
+	const middleX = (start.x + end.x) / 2;
 	return [
 		start,
 		{ x: middleX, y: start.y },
