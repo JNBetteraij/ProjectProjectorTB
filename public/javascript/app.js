@@ -6,8 +6,8 @@ import { ClassSearch } from "./core/Searches/ClassSearch.js";
 import { ExportSearch } from "./core/Searches/ExportSearch.js";
 import { ImportSearch } from "./core/Searches/ImportSearch.js";
 import { JavaScriptParser } from "./languageModules/javascript/JavaScriptParser.js";
-import { GraphRenderer } from "./ui/GraphRenderer.js";
-import { ClassGraphRenderer } from "./ui/ClassGraphRenderer.js";
+import { ClassGraphRenderer } from "./ui/renderers/ClassGraphRenderer.js";
+import { ImportGraphRenderer } from "./ui/renderers/ImportGraphRenderer.js";
 import { ScopeListRenderer } from "./ui/ScopeListRenderer.js";
 
 const controlsDialog = document.querySelector("#controlsDialog");
@@ -36,8 +36,7 @@ const scanner = new Scanner([
 	new ClassSearch(languageParser),
 ]);
 const graphBuilder = new ImportsGraphBuilder();
-const classGraphBuilder = new ClassesGraphBuilder();
-const graphRenderer = new GraphRenderer({
+const importGraphRenderer = new ImportGraphRenderer({
 	viewport: document.querySelector("#graphViewport"),
 	world: document.querySelector("#graphWorld"),
 	edgeSvg: document.querySelector("#graphEdges"),
@@ -50,6 +49,7 @@ const graphRenderer = new GraphRenderer({
 	showDependantsButton: document.querySelector("#showDependantsButton"),
 	showFullGraphButton: document.querySelector("#showFullGraphButton"),
 });
+const classGraphBuilder = new ClassesGraphBuilder();
 const classGraphRenderer = new ClassGraphRenderer({
 	viewport: classGraphViewport,
 	edgeSvg: document.querySelector("#classGraphEdges"),
@@ -57,8 +57,8 @@ const classGraphRenderer = new ClassGraphRenderer({
 	emptyState: document.querySelector("#emptyClassGraph"),
 });
 const scopeListRenderer = new ScopeListRenderer(document.querySelector("#scopeList"), {
-	onSelectFile: (fileId) => graphRenderer.selectFile(fileId),
-	onFocusFile: (fileId) => graphRenderer.focusFile(fileId),
+	onSelectFile: (fileId) => importGraphRenderer.selectFile(fileId),
+	onFocusFile: (fileId) => importGraphRenderer.focusFile(fileId),
 });
 
 let scanResults = [];
@@ -69,10 +69,10 @@ closeControlsButton.addEventListener("click", () => controlsDialog.close());
 fitGraphButton.addEventListener("click", fitActiveGraph);
 showImportGraphButton.addEventListener("click", () => showGraph("imports"));
 showClassGraphButton.addEventListener("click", () => showGraph("classes"));
-graphRenderer.showLocalButton.addEventListener("click", () => graphRenderer.showLocal());
-graphRenderer.showFullGraphButton.addEventListener("click", () => graphRenderer.showFullGraph());
-graphRenderer.showDependenciesButton.addEventListener("click", () => graphRenderer.showDependencies());
-graphRenderer.showDependantsButton.addEventListener("click", () => graphRenderer.showDependants());
+importGraphRenderer.showLocalButton.addEventListener("click", () => importGraphRenderer.showLocal());
+importGraphRenderer.showFullGraphButton.addEventListener("click", () => importGraphRenderer.showFullGraph());
+importGraphRenderer.showDependenciesButton.addEventListener("click", () => importGraphRenderer.showDependencies());
+importGraphRenderer.showDependantsButton.addEventListener("click", () => importGraphRenderer.showDependants());
 downloadButton.addEventListener("click", downloadJson);
 copyButton.addEventListener("click", copyJson);
 scanForm.addEventListener("submit", (event) => {
@@ -113,7 +113,7 @@ async function scanSelectedFiles() {
 		const graph = graphBuilder.build(scannedFiles);
 		const classGraph = classGraphBuilder.build(scannedFiles);
 		scanResults = graph.files;
-		graphRenderer.render(graph);
+		importGraphRenderer.render(graph);
 		classGraphRenderer.render(classGraph);
 		scopeListRenderer.render(graph.groups);
 		projectSummary.textContent = `${graph.files.length} files · ${graph.edges.length} import connections · ${classGraph.classes.length} classes`;
@@ -178,7 +178,7 @@ function showGraph(graphKind) {
 		? "Drag canvas to pan · Wheel to zoom · Drag node handles to move classes"
 		: "Drag canvas to pan · Wheel to zoom · Use a node handle to move it";
 	if (showClasses) classGraphRenderer.onVisible();
-	else graphRenderer.onVisible();
+	else importGraphRenderer.onVisible();
 }
 
 //#endregion Graph view controls
@@ -189,7 +189,7 @@ function showGraph(graphKind) {
  * @returns {void} No value is returned.
  */
 function fitActiveGraph() {
-	if (classGraphViewport.hidden) graphRenderer.fit();
+	if (classGraphViewport.hidden) importGraphRenderer.fit();
 	else classGraphRenderer.fit();
 }
 

@@ -6,6 +6,27 @@ const nodeWidth = 300;
 const nodeHeight = 132;
 const columnGap = 620;
 const rowGap = 290;
+const connectionColors = ["#8854d0", "#df8b24", "#3488f5", "#2a9d8f", "#d1495b", "#6c757d"];
+
+/**
+ * Get the graph-defined type for a connection.
+ *
+ * @param {object} edge Directed graph edge.
+ * @returns {string} Connection type, with a generic fallback.
+ */
+export function getConnectionType(edge) {
+	return String(edge.type || edge.connectionType || edge.label || "connection");
+}
+
+/**
+ * Get the deterministic display color assigned to a connection type index.
+ *
+ * @param {number} index Position of the connection type in the graph's type list.
+ * @returns {string} CSS color for the connection type.
+ */
+export function getConnectionTypeColor(index) {
+	return connectionColors[index % connectionColors.length];
+}
 
 /** Provide the shared layout, viewport controls, focus, and connection drawing for graph types. */
 export class GraphDisplay {
@@ -228,9 +249,12 @@ export class GraphDisplay {
 		this.edgeSvg.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
 		selectedLayer?.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
 		this.edgeElements.clear();
+		this.updateConnectionKey?.(edges);
 		const layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
 		layer.classList.add("edge-layer");
 		const pathsByIncomingPoint = new Map();
+		const types = [...new Set(edges.map(getConnectionType))];
+		const typeIndexes = new Map(types.map((type, index) => [type, index]));
 
 		for (const edge of edges) {
 			const source = this.graphNodes.get(edge.sourceId);
@@ -245,7 +269,13 @@ export class GraphDisplay {
 			path.classList.add("graph-edge");
 			path.dataset.sourceId = edge.sourceId;
 			path.dataset.targetId = edge.targetId;
-			path.dataset.edgeKey = `${edge.sourceId}:${edge.targetId}`;
+			path.dataset.connectionType = getConnectionType(edge);
+			if (types.length > 1) {
+				path.style.setProperty(
+					"--connection-color",
+					getConnectionTypeColor(typeIndexes.get(path.dataset.connectionType)),
+				);
+			}
 			const pointKey = `${end.x}:${end.y}`;
 			if (!pathsByIncomingPoint.has(pointKey)) pathsByIncomingPoint.set(pointKey, []);
 			pathsByIncomingPoint.get(pointKey).push(path);
@@ -253,7 +283,7 @@ export class GraphDisplay {
 			edgeTitle.textContent = title(edge);
 			path.append(edgeTitle);
 			layer.append(path);
-			this.edgeElements.set(path.dataset.edgeKey, path);
+			this.edgeElements.set(edge, path);
 		}
 
 		for (const paths of pathsByIncomingPoint.values()) {
@@ -269,34 +299,37 @@ export class GraphDisplay {
 	}
 
 	/**
-	 * Highlight a selected node, its connected nodes, and incoming and outgoing edges.
+	 * Highlight a selected node, its direct connections, and enabled transitive connections.
 	 *
 	 * @param {number | null} selectedId ID of the selected node, or null to clear highlighting.
-	 * @returns {Set<number>} The selected node ID and its directly connected node IDs.
+	 * @returns {Set<number>} Selected, direct, and enabled transitive node IDs.
 	 */
 	highlightConnections(selectedId) {
 		const highlightedIds = new Set();
 		for (const node of this.nodeElements.values()) {
-			node.classList.remove("selected", "incoming", "outgoing");
+			node.classList.remove("selected", "incoming", "outgoing", "upstream", "downstream");
 		}
 		for (const edge of this.edgeElements.values()) {
-			edge.classList.remove("incoming-edge", "outgoing-edge");
+			edge.classList.remove("incoming-edge", "outgoing-edge", "upstream-edge", "downstream-edge");
 		}
 		if (selectedId === null) return highlightedIds;
 
 		highlightedIds.add(selectedId);
 		this.nodeElements.get(selectedId)?.classList.add("selected");
 		const highlightedEdges = [];
+		const directNodeIds = new Set([selectedId]);
 		for (const edge of this.graph?.edges || []) {
-			const path = this.edgeElements.get(`${edge.sourceId}:${edge.targetId}`);
+			const path = this.edgeElements.get(edge);
 			if (edge.sourceId === selectedId) {
 				highlightedIds.add(edge.targetId);
+				directNodeIds.add(edge.targetId);
 				this.nodeElements.get(edge.targetId)?.classList.add("outgoing");
 				path?.classList.add("outgoing-edge");
 				if (path) highlightedEdges.push(path);
 			}
 			if (edge.targetId === selectedId) {
 				highlightedIds.add(edge.sourceId);
+				directNodeIds.add(edge.sourceId);
 				this.nodeElements.get(edge.sourceId)?.classList.add("incoming");
 				path?.classList.add("incoming-edge");
 				if (path && !highlightedEdges.includes(path)) highlightedEdges.push(path);
@@ -305,7 +338,57 @@ export class GraphDisplay {
 		for (const path of highlightedEdges) {
 			path.parentElement?.append(path);
 		}
+		for (const direction of ["upstream", "downstream"]) {
+			if (!this.highlightSettings?.get(direction)) continue;
+			const extended = this.getExtendedConnections(selectedId, direction);
+			for (const nodeId of extended.nodeIds) {
+				if (directNodeIds.has(nodeId)) continue;
+				this.nodeElements.get(nodeId)?.classList.add(direction);
+				highlightedIds.add(nodeId);
+			}
+			for (const edge of extended.edges) {
+				const path = this.edgeElements.get(edge);
+				path?.classList.add(`${direction}-edge`);
+				if (path) path.parentElement?.append(path);
+			}
+		}
 		return highlightedIds;
+	}
+
+	/**
+	 * Find nodes and edges beyond the selected node's direct connections.
+	 *
+	 * @param {number} selectedId Selected graph node ID.
+	 * @param {"upstream" | "downstream"} direction Direction to traverse.
+	 * @returns {{ nodeIds: Set<number>, edges: object[] }} Transitive nodes and edges beyond the selection.
+	 */
+	getExtendedConnections(selectedId, direction) {
+		const directNodeIds = new Set();
+		const visited = new Set([selectedId]);
+		const queue = [selectedId];
+		const extendedEdges = new Set();
+		for (let index = 0; index < queue.length; index++) {
+			const currentId = queue[index];
+			for (const edge of this.graph?.edges || []) {
+				const followsDirection = direction === "upstream"
+					? edge.targetId === currentId
+					: edge.sourceId === currentId;
+				if (!followsDirection) continue;
+				const neighborId = direction === "upstream" ? edge.sourceId : edge.targetId;
+				if (currentId === selectedId) directNodeIds.add(neighborId);
+				else if (edge.sourceId !== selectedId && edge.targetId !== selectedId) extendedEdges.add(edge);
+				if (visited.has(neighborId)) continue;
+				visited.add(neighborId);
+				queue.push(neighborId);
+			}
+		}
+
+		for (const nodeId of directNodeIds) visited.delete(nodeId);
+		visited.delete(selectedId);
+		return {
+			nodeIds: visited,
+			edges: [...extendedEdges],
+		};
 	}
 
 	/**
@@ -435,7 +518,12 @@ export class GraphDisplay {
 	 * @returns {void} No value is returned.
 	 */
 	startPan(event) {
-		if (event.button !== 0 || event.target.closest(".graph-node, .class-graph-node, .local-graph-controls")) return;
+		if (
+			event.button !== 0
+			|| event.target.closest(
+				".graph-node, .class-graph-node, .graph-edge, .local-graph-controls, .graph-overlay",
+			)
+		) return;
 		this.dragState = {
 			type: "pan",
 			pointerId: event.pointerId,

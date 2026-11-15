@@ -1,9 +1,9 @@
-import { GraphDisplay } from "./GraphDisplay.js";
+import { GraphRenderer } from "./GraphRenderer.js";
 
 //#region Class graph renderer
 
 /** Render classes as nodes connected from base classes to their subclasses. */
-export class ClassGraphRenderer extends GraphDisplay {
+export class ClassGraphRenderer extends GraphRenderer {
 	/**
 	 * Create a renderer for the class graph viewport.
 	 *
@@ -175,14 +175,14 @@ export class ClassGraphRenderer extends GraphDisplay {
 	}
 
 	/**
-	 * Select a class node and highlight its direct inheritance relationships.
+	 * Select a class node and highlight its direct and enabled extended relationships.
 	 *
 	 * @param {number} classId ID of the class to select.
 	 * @returns {void} No value is returned.
 	 */
 	selectClass(classId) {
 		this.selectedId = classId;
-		this.highlightConnections(classId);
+		this.updateSelection();
 	}
 
 }

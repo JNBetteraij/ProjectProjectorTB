@@ -295,6 +295,63 @@ button:disabled {
 	cursor: grabbing;
 }
 
+.graph-overlay {
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	z-index: 6;
+	display: grid;
+	align-content: start;
+	gap: 0.5rem;
+	max-width: min(20rem, calc(100% - 2rem));
+	cursor: default;
+	touch-action: auto;
+}
+
+.graph-overlay-window {
+	min-width: 10rem;
+	padding: 0.45rem 0.65rem;
+	border: 1px solid var(--panel-border);
+	border-radius: 0.45rem;
+	background: var(--panel-bg);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.graph-overlay-window[hidden] {
+	display: none;
+}
+
+.graph-overlay-window > summary {
+	cursor: pointer;
+	font-weight: 650;
+}
+
+.graph-connection-key,
+.graph-overlay-options {
+	display: grid;
+	gap: 0.35rem;
+	margin: 0.45rem 0 0;
+	list-style: none;
+	font-size: 0.85rem;
+}
+
+.graph-connection-key-item,
+.graph-overlay-option {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.graph-connection-key-swatch {
+	flex: 0 0 auto;
+	width: 1.25rem;
+	border-top: 3px solid var(--connection-color);
+}
+
+.graph-overlay-option input {
+	margin: 0;
+}
+
 .class-graph-world {
 	position: absolute;
 	top: 0;
@@ -353,6 +410,18 @@ button:disabled {
 	border-color: var(--outgoing);
 	background: color-mix(in srgb, var(--outgoing) 13%, Canvas);
 	z-index: 3;
+}
+
+.class-graph-node.upstream {
+	border-color: color-mix(in srgb, var(--incoming) 55%, Canvas);
+	background: color-mix(in srgb, var(--incoming) 8%, Canvas);
+	z-index: 2;
+}
+
+.class-graph-node.downstream {
+	border-color: color-mix(in srgb, var(--outgoing) 55%, Canvas);
+	background: color-mix(in srgb, var(--outgoing) 8%, Canvas);
+	z-index: 2;
 }
 
 .class-graph-node.dragged {
@@ -438,13 +507,21 @@ button:disabled {
 	pointer-events: none;
 }
 
+.selected-graph-nodes > .graph-node {
+	pointer-events: auto;
+}
+
+.graph-edge {
+	pointer-events: stroke;
+}
+
 .graph-edges marker path {
 	fill: context-stroke;
 }
 
 .graph-edge {
 	fill: none;
-	stroke: #9aa8b7;
+	stroke: var(--connection-color, #9aa8b7);
 	stroke-width: 2.5;
 	vector-effect: non-scaling-stroke;
 }
@@ -457,6 +534,16 @@ button:disabled {
 .graph-edge.incoming-edge {
 	stroke: var(--incoming);
 	stroke-width: 3.5;
+}
+
+.graph-edge.upstream-edge {
+	stroke: color-mix(in srgb, var(--incoming) 45%, Canvas);
+	stroke-width: 3;
+}
+
+.graph-edge.downstream-edge {
+	stroke: color-mix(in srgb, var(--outgoing) 45%, Canvas);
+	stroke-width: 3;
 }
 
 .graph-nodes {
@@ -492,6 +579,18 @@ button:disabled {
 	border-color: var(--outgoing);
 	background: color-mix(in srgb, var(--outgoing) 13%, Canvas);
 	z-index: 3;
+}
+
+.graph-node.upstream {
+	border-color: color-mix(in srgb, var(--incoming) 55%, Canvas);
+	background: color-mix(in srgb, var(--incoming) 8%, Canvas);
+	z-index: 2;
+}
+
+.graph-node.downstream {
+	border-color: color-mix(in srgb, var(--outgoing) 55%, Canvas);
+	background: color-mix(in srgb, var(--outgoing) 8%, Canvas);
+	z-index: 2;
 }
 
 .graph-node.dragged {

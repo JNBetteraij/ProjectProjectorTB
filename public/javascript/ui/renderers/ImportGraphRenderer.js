@@ -1,10 +1,17 @@
-import { createDetailsSection } from "./Details.js";
-import { createFileLabel, createImportStatusTag } from "./FileDisplay.js";
-import { GraphDisplay } from "./GraphDisplay.js";
+import { createDetailsSection } from "../Details.js";
+import { createFileLabel, createImportStatusTag } from "../FileDisplay.js";
+import { GraphRenderer } from "./GraphRenderer.js";
 
 const NODE_HEIGHT = 132;
 
-export class GraphRenderer extends GraphDisplay {
+/** Render the import graph and its local dependency views. */
+export class ImportGraphRenderer extends GraphRenderer {
+	/**
+	 * Create the import graph renderer and connect its local-view controls.
+	 *
+	 * @param {object} elements Viewport, graph layers, and local graph buttons.
+	 * @returns {void} No value is returned.
+	 */
 	constructor({
 		viewport,
 		world,
@@ -19,13 +26,6 @@ export class GraphRenderer extends GraphDisplay {
 		showFullGraphButton,
 	}) {
 		super({ viewport, world, edgeSvg, nodeLayer, selectedEdgeSvg, selectedNodeLayer, emptyState });
-		this.viewport = viewport;
-		this.world = world;
-		this.edgeSvg = edgeSvg;
-		this.nodeLayer = nodeLayer;
-		this.selectedEdgeSvg = selectedEdgeSvg;
-		this.selectedNodeLayer = selectedNodeLayer;
-		this.emptyState = emptyState;
 		this.showLocalButton = showLocalButton;
 		this.showDependenciesButton = showDependenciesButton;
 		this.showDependantsButton = showDependantsButton;
@@ -37,6 +37,12 @@ export class GraphRenderer extends GraphDisplay {
 		this.frontNodeId = null;
 	}
 
+	/**
+	 * Store and display the complete import graph.
+	 *
+	 * @param {object} graph Resolved import graph to display.
+	 * @returns {void} No value is returned.
+	 */
 	render(graph) {
 		this.mainGraph = graph;
 		this.mainViewState = null;
@@ -44,6 +50,13 @@ export class GraphRenderer extends GraphDisplay {
 		this.renderGraph(graph);
 	}
 
+	/**
+	 * Render an import subgraph while optionally preserving node positions.
+	 *
+	 * @param {object} graph Import graph data containing files and edges.
+	 * @param {Map<number, object> | null} [positions=null] Existing positions to preserve.
+	 * @returns {void} No value is returned.
+	 */
 	renderGraph(graph, positions = null) {
 		this.graph = graph;
 		this.selectedId = null;
@@ -71,6 +84,11 @@ export class GraphRenderer extends GraphDisplay {
 		this.updateLocalControls();
 	}
 
+	/**
+	 * Show the selected file and its immediate import relationships.
+	 *
+	 * @returns {void} No value is returned.
+	 */
 	showLocal() {
 		if (this.localMode || !this.mainGraph || this.selectedId === null) return;
 		this.mainViewState = {
@@ -84,20 +102,44 @@ export class GraphRenderer extends GraphDisplay {
 		this.renderLocalGraph();
 	}
 
+	/**
+	 * Show the selected file's transitive dependencies.
+	 *
+	 * @returns {void} No value is returned.
+	 */
 	showDependencies() {
 		this.showTraversal("dependencies");
 	}
 
+	/**
+	 * Show the selected file's transitive dependants.
+	 *
+	 * @returns {void} No value is returned.
+	 */
 	showDependants() {
 		this.showTraversal("dependants");
 	}
 
+	/**
+	 * Display the selected file's complete traversal in one direction.
+	 *
+	 * @param {"dependencies" | "dependants"} direction Traversal direction.
+	 * @returns {void} No value is returned.
+	 */
 	showTraversal(direction) {
 		if (!this.localMode || !this.mainGraph || this.selectedId === null) return;
 		const { files, edges } = getTraversalGraph(this.mainGraph, this.selectedId, direction);
 		this.renderLocalGraph(files, edges, direction === "dependencies" ? "Dependencies" : "Dependants");
 	}
 
+	/**
+	 * Render a local view of the current selection and preserve its selection state.
+	 *
+	 * @param {object[] | null} [files=null] Files to include, or null for direct neighbors.
+	 * @param {object[] | null} [edges=null] Edges to include, or null for direct relationships.
+	 * @param {string} [title="Local graph"] Local graph group title.
+	 * @returns {void} No value is returned.
+	 */
 	renderLocalGraph(files = null, edges = null, title = "Local graph") {
 		const selectedId = this.selectedId;
 		const frontNodeId = this.frontNodeId;
@@ -123,6 +165,11 @@ export class GraphRenderer extends GraphDisplay {
 		this.updateLocalControls();
 	}
 
+	/**
+	 * Restore the full import graph and its saved view state.
+	 *
+	 * @returns {void} No value is returned.
+	 */
 	showFullGraph() {
 		if (!this.localMode || !this.mainGraph || !this.mainViewState) return;
 		const { positions, pan, selectedId, frontNodeId } = this.mainViewState;
@@ -137,6 +184,11 @@ export class GraphRenderer extends GraphDisplay {
 		this.updateLocalControls();
 	}
 
+	/**
+	 * Synchronize local graph buttons with the current view and selection.
+	 *
+	 * @returns {void} No value is returned.
+	 */
 	updateLocalControls() {
 		if (this.showLocalButton) {
 			this.showLocalButton.hidden = this.localMode;
@@ -147,10 +199,22 @@ export class GraphRenderer extends GraphDisplay {
 		if (this.showFullGraphButton) this.showFullGraphButton.hidden = !this.localMode;
 	}
 
+	/**
+	 * Lay out files using the shared graph layout.
+	 *
+	 * @param {object} graph Import graph data.
+	 * @returns {Map<number, object>} File positions by ID.
+	 */
 	layout(graph) {
 		return this.layoutNodes(graph.files, graph.edges, (file) => file.path.full);
 	}
 
+	/**
+	 * Create file nodes and register their interactive graph elements.
+	 *
+	 * @param {object[]} files Files to render as nodes.
+	 * @returns {void} No value is returned.
+	 */
 	drawNodes(files) {
 		for (const file of files) {
 			const node = document.createElement("article");
@@ -194,6 +258,12 @@ export class GraphRenderer extends GraphDisplay {
 		}
 	}
 
+	/**
+	 * Build the collapsible import/export sections for one file node.
+	 *
+	 * @param {object} file File represented by the node.
+	 * @returns {HTMLElement[]} Rendered detail sections.
+	 */
 	createNodeDetails(file) {
 		const details = [];
 		if (file.imports.length) {
@@ -206,6 +276,13 @@ export class GraphRenderer extends GraphDisplay {
 		return details;
 	}
 
+	/**
+	 * Create a counted collapsible details section.
+	 *
+	 * @param {string} title Section title.
+	 * @param {number} count Number displayed in the section badge.
+	 * @returns {{ details: HTMLDetailsElement, content: HTMLDivElement }} Details element and content.
+	 */
 	createCountedDetails(title, count) {
 		const { details, summary, content } = createDetailsSection(title, {
 			details: "node-detail-box",
@@ -226,6 +303,13 @@ export class GraphRenderer extends GraphDisplay {
 		return { details, content };
 	}
 
+	/**
+	 * Render imported file and symbol information.
+	 *
+	 * @param {object[]} imports Imports belonging to the file.
+	 * @param {number} importedItemCount Number of imported items.
+	 * @returns {HTMLDetailsElement} Import details element.
+	 */
 	createImportsDetails(imports, importedItemCount) {
 		const { details, content } = this.createCountedDetails("Imports", importedItemCount);
 		const list = document.createElement("ul");
@@ -264,6 +348,12 @@ export class GraphRenderer extends GraphDisplay {
 		return details;
 	}
 
+	/**
+	 * Render exported symbols and the files that import them.
+	 *
+	 * @param {object[]} exports Exports belonging to the file.
+	 * @returns {HTMLDetailsElement} Export details element.
+	 */
 	createExportsDetails(exports) {
 		const { details, content } = this.createCountedDetails("Exports", exports.length);
 		const list = document.createElement("div");
@@ -342,6 +432,13 @@ export class GraphRenderer extends GraphDisplay {
 		return details;
 	}
 
+	/**
+	 * Create controls to select or focus a file from a node detail.
+	 *
+	 * @param {object} file File to target.
+	 * @param {string} path Display path for the file.
+	 * @returns {HTMLDivElement} File selection and focus controls.
+	 */
 	createFileLink(file, path) {
 		const element = document.createElement("div");
 		element.className = "node-file-link";
@@ -372,18 +469,42 @@ export class GraphRenderer extends GraphDisplay {
 
 		return element;
 	}
+	/**
+	 * Measure a rendered file node, falling back to the default node height.
+	 *
+	 * @param {number} fileId File node identifier.
+	 * @returns {number} Node height in graph coordinates.
+	 */
 	getNodeHeight(fileId) {
 		return this.nodeElements.get(fileId)?.offsetHeight || NODE_HEIGHT;
 	}
 
+	/**
+	 * Describe the imports section as the incoming edge anchor.
+	 *
+	 * @param {object} file File represented by the node.
+	 * @returns {{ side: string, section: string }} Incoming connection anchor.
+	 */
 	getIncomingConnectionPoint(file) {
 		return { side: "left", section: "imports" };
 	}
 
+	/**
+	 * Describe the exports section as the outgoing edge anchor.
+	 *
+	 * @param {object} file File represented by the node.
+	 * @returns {{ side: string, section: string }} Outgoing connection anchor.
+	 */
 	getOutgoingConnectionPoint(file) {
 		return { side: "right", section: "exports" };
 	}
 
+	/**
+	 * Draw import edges with tooltips and selected-edge layering.
+	 *
+	 * @param {object[]} edges Directed import edges.
+	 * @returns {void} No value is returned.
+	 */
 	drawEdges(edges) {
 		this.drawConnections(edges, {
 			selectedLayer: this.selectedEdgeSvg,
@@ -392,22 +513,47 @@ export class GraphRenderer extends GraphDisplay {
 		});
 	}
 
+	/**
+	 * Raise a file node and start the shared node drag interaction.
+	 *
+	 * @param {PointerEvent} event Pointer event from the node drag handle.
+	 * @param {number} fileId File node identifier.
+	 * @returns {void} No value is returned.
+	 */
 	startNodeDrag(event, fileId) {
 		setTimeout(() => this.bringNodeToFront(fileId), 0);
 		super.startNodeDrag(event, fileId);
 	}
 
+	/**
+	 * Select a file and update graph highlighting.
+	 *
+	 * @param {number} fileId File node identifier.
+	 * @returns {void} No value is returned.
+	 */
 	selectFile(fileId) {
 		this.selectedId = fileId;
 		this.updateSelection();
 	}
 
+	/**
+	 * Bring a file node above adjacent nodes after interaction.
+	 *
+	 * @param {number} fileId File node identifier.
+	 * @returns {void} No value is returned.
+	 */
 	bringNodeToFront(fileId) {
 		if (!this.nodeElements.has(fileId)) return;
 		this.frontNodeId = fileId;
 		this.updateSelection();
 	}
 
+	/**
+	 * Select and center a file node in the graph viewport.
+	 *
+	 * @param {number} fileId File node identifier.
+	 * @returns {void} No value is returned.
+	 */
 	focusFile(fileId) {
 		if (!this.graphNodes.has(fileId)) return;
 		this.selectedId = fileId;
@@ -415,6 +561,11 @@ export class GraphRenderer extends GraphDisplay {
 		this.updateSelection();
 	}
 
+	/**
+	 * Apply selection and extended highlighting and layer active edges and nodes.
+	 *
+	 * @returns {void} No value is returned.
+	 */
 	updateSelection() {
 		this.updateLocalControls();
 		for (const node of this.nodeElements.values()) {
@@ -427,7 +578,10 @@ export class GraphRenderer extends GraphDisplay {
 		for (const edge of this.edgeElements.values()) {
 			const sourceId = Number(edge.dataset.sourceId);
 			const targetId = Number(edge.dataset.targetId);
-			const touchesSelection = sourceId === this.selectedId || targetId === this.selectedId;
+			const touchesSelection = sourceId === this.selectedId
+				|| targetId === this.selectedId
+				|| edge.classList.contains("upstream-edge")
+				|| edge.classList.contains("downstream-edge");
 			if (touchesSelection) {
 				selectedLayer?.append(edge);
 			} else {
@@ -446,6 +600,14 @@ export class GraphRenderer extends GraphDisplay {
 	}
 }
 
+/**
+ * Collect the nodes and edges reachable from a selected file in one direction.
+ *
+ * @param {object} graph Graph containing file and edge arrays.
+ * @param {number} selectedId Starting file identifier.
+ * @param {"dependencies" | "dependants"} direction Traversal direction.
+ * @returns {{ files: object[], edges: object[] }} Traversal subgraph.
+ */
 function getTraversalGraph(graph, selectedId, direction) {
 	const edgesBySource = new Map(graph.files.map((file) => [file.id, []]));
 	const edgesByTarget = new Map(graph.files.map((file) => [file.id, []]));

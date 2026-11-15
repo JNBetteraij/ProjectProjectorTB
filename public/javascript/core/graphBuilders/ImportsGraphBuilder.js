@@ -1,4 +1,11 @@
+/** Build file nodes and typed import relationships from scanned project files. */
 export class ImportsGraphBuilder {
+	/**
+	 * Resolve imported exports and construct directed importer/exporter graph edges.
+	 *
+	 * @param {object[]} files Scanned project files to connect.
+	 * @returns {{ files: object[], edges: object[], groups: object[] }} Files, typed import edges, and file groups.
+	 */
 	build(files) {
 		const edgesByPair = new Map();
 		for (const file of files) {
@@ -44,6 +51,7 @@ export class ImportsGraphBuilder {
 					edgesByPair.set(pairKey, {
 						sourceId: exporter.id,
 						targetId: importer.id,
+						type: "imports",
 						importedItems: [],
 					});
 				}
