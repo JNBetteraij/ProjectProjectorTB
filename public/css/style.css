@@ -330,6 +330,14 @@ button:disabled {
 .graph-overlay-window > summary {
 	cursor: pointer;
 	font-weight: 650;
+
+	.content {
+		display: grid;
+		gap: 0.35rem;
+		margin: 0.45rem 0 0;
+		list-style: none;
+		font-size: 0.85rem;
+	}
 }
 
 .graph-connection-key,
@@ -533,22 +541,22 @@ button:disabled {
 }
 
 .graph-edge.outgoing-edge {
-	stroke: var(--outgoing);
+	stroke: var(--connection-outgoing-color, var(--outgoing));
 	stroke-width: 3.5;
 }
 
 .graph-edge.incoming-edge {
-	stroke: var(--incoming);
+	stroke: var(--connection-incoming-color, var(--incoming));
 	stroke-width: 3.5;
 }
 
 .graph-edge.upstream-edge {
-	stroke: color-mix(in srgb, var(--incoming) 45%, Canvas);
+	stroke: var(--connection-upstream-color, color-mix(in srgb, var(--incoming) 45%, Canvas));
 	stroke-width: 3;
 }
 
 .graph-edge.downstream-edge {
-	stroke: color-mix(in srgb, var(--outgoing) 45%, Canvas);
+	stroke: var(--connection-downstream-color, color-mix(in srgb, var(--outgoing) 45%, Canvas));
 	stroke-width: 3;
 }
 

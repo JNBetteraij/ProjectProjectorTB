@@ -91,9 +91,9 @@ class Component {
 
 		function normalize(value) {
 			if (Array.isArray(value)) {
-				return value.map((item) => normalize(item)).join("");
+				return value.map((val) => normalize(val)).join("");
 			}
-			if (value instanceof Component) return componentPlaceholder(item);
+			if (value instanceof Component) return componentPlaceholder(value);
 			//some kind of check/conversion to stringable value
 			return value;
 		}

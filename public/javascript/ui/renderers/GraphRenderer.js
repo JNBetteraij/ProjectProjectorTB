@@ -1,10 +1,11 @@
-import { GraphDisplay, getConnectionType, getConnectionTypeColor } from "../GraphDisplay.js";
+import { GraphDisplay } from "../GraphDisplay.js";
 import { createGraphViewTemplate } from "./GraphViewTemplates.js";
 
 /**
  * @typedef {import("./GraphViewTemplates.js").GraphViewTemplateOptions & {
  *   container: HTMLElement,
- *   markerPrefix: string
+ *   markerPrefix: string,
+ *   connectionTypes: Map<string, import("../ConnectionType.js").ConnectionType>
  * }} GraphViewOptions
  *
  * @typedef {object} GraphViewElements
@@ -34,6 +35,7 @@ export class GraphRenderer extends GraphDisplay {
 	constructor(options) {
 		const elements = createGraphView(options);
 		super(elements);
+		this.connectionTypes = new Map(options.connectionTypes);
 		this.markerId = elements.markerId;
 		this.highlightOptions = this.getHighlightOptions();
 		this.highlightSettings = new Map(
@@ -110,28 +112,41 @@ export class GraphRenderer extends GraphDisplay {
 	}
 
 	/**
-	 * Refresh the connection-type key and color mapping for the displayed edges.
+	 * Refresh the connection-type key from the renderer's predefined connection types.
 	 *
 	 * The key is hidden when the graph contains no edges.
 	 *
-	 * @param {object[]} edges Directed edges in the current graph.
 	 * @returns {void}
 	 */
-	updateConnectionKey(edges) {
+	updateConnectionKey() {
 		if (!this.connectionKeyDetails || !this.connectionKeyList) return;
-		const types = [...new Set(edges.map(getConnectionType))];
-		this.connectionKeyDetails.hidden = types.length === 0;
-		this.connectionKeyList.replaceChildren();
-		if (types.length === 0) return;
 
-		types.forEach((type, index) => {
-			const color = types.length > 1 ? getConnectionTypeColor(index) : "#9aa8b7";
-			this.connectionKeyList.append(this.createConnectionKeyItem(formatConnectionType(type), color));
-		});
-		this.connectionKeyList.append(
-			this.createConnectionKeyItem("Incoming highlight", "var(--incoming)"),
-			this.createConnectionKeyItem("Outgoing highlight", "var(--outgoing)"),
-		);
+		const connectionTypes = this.connectionTypes;
+		console.log(connectionTypes);
+
+		this.connectionKeyDetails.hidden = false;
+		this.connectionKeyList.replaceChildren();
+		for (const [key, type] of connectionTypes) {
+			console.log(type);
+			this.connectionKeyList.append(this.createConnectionKeyItem(formatConnectionType(type.type), type.color));
+		}
+
+		// const edges = this.graph?.edges || [];
+		// const presentTypes = new Set(edges.map(getConnectionType));
+		// const types = [...this.connectionTypes.values()].filter((type) => presentTypes.has(type.type));
+		// const hasEdges = edges.length > 0;
+		// this.connectionKeyDetails.hidden = !hasEdges || types.length === 0;
+		// this.connectionKeyList.replaceChildren();
+		// if (!hasEdges || types.length === 0) return;
+
+		// for (const type of types) {
+		// 	this.connectionKeyList.append(this.createConnectionKeyItem(formatConnectionType(type.type), type.color));
+		// }
+		// const highlightColors = types[0].highlightColors;
+		// this.connectionKeyList.append(
+		// 	this.createConnectionKeyItem("Incoming highlight", highlightColors.incoming),
+		// 	this.createConnectionKeyItem("Outgoing highlight", highlightColors.outgoing),
+		// );
 	}
 
 	/**

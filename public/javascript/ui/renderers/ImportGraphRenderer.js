@@ -1,9 +1,24 @@
 import { createDetailsSection } from "../Details.js";
 import { createFileLabel, createImportStatusTag } from "../FileDisplay.js";
+import {
+	ConnectionType,
+	DEFAULT_CONNECTION_COLOR,
+	DEFAULT_CONNECTION_HIGHLIGHT_COLORS,
+} from "../ConnectionType.js";
 import { GraphRenderer } from "./GraphRenderer.js";
 import { importGraphControlsTemplate } from "./GraphViewTemplates.js";
 
 const NODE_HEIGHT = 132;
+const connectionTypes = new Map([
+	[
+		"imports",
+		new ConnectionType({
+			type: "imports",
+			color: DEFAULT_CONNECTION_COLOR,
+			highlightColors: DEFAULT_CONNECTION_HIGHLIGHT_COLORS,
+		}),
+	],
+]);
 
 /** Render the import graph and its local dependency views. */
 export class ImportGraphRenderer extends GraphRenderer {
@@ -25,6 +40,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 			markerPrefix: "arrowhead",
 			selectionLayers: true,
 			controlsTemplate: importGraphControlsTemplate,
+			connectionTypes,
 		});
 		this.showLocalButton = this.getViewElement("[data-show-local]");
 		this.showDependenciesButton = this.getViewElement("[data-show-dependencies]");

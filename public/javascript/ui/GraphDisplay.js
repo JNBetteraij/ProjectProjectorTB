@@ -1,4 +1,5 @@
 import { GraphNode } from "./GraphNode.js";
+import { DEFAULT_CONNECTION_COLOR } from "./ConnectionType.js";
 
 //#region Shared graph display
 
@@ -6,7 +7,6 @@ const nodeWidth = 300;
 const nodeHeight = 132;
 const columnGap = 620;
 const rowGap = 290;
-const connectionColors = ["#8854d0", "#df8b24", "#3488f5", "#2a9d8f", "#d1495b", "#6c757d"];
 
 /**
  * Get the graph-defined type for a connection.
@@ -16,16 +16,6 @@ const connectionColors = ["#8854d0", "#df8b24", "#3488f5", "#2a9d8f", "#d1495b",
  */
 export function getConnectionType(edge) {
 	return String(edge.type || edge.connectionType || edge.label || "connection");
-}
-
-/**
- * Get the deterministic display color assigned to a connection type index.
- *
- * @param {number} index Position of the connection type in the graph's type list.
- * @returns {string} CSS color for the connection type.
- */
-export function getConnectionTypeColor(index) {
-	return connectionColors[index % connectionColors.length];
 }
 
 /** Provide the shared layout, viewport controls, focus, and connection drawing for graph types. */
@@ -49,6 +39,7 @@ export class GraphDisplay {
 		this.graphNodes = new Map();
 		this.nodeElements = new Map();
 		this.edgeElements = new Map();
+		this.unregisteredConnectionTypes = new Set();
 		this.pan = { x: 0, y: 0, scale: 1 };
 		this.dragState = null;
 		this.pendingVisibleCallback = null;
@@ -241,12 +232,11 @@ export class GraphDisplay {
 		this.edgeSvg.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
 		selectedLayer?.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
 		this.edgeElements.clear();
-		this.updateConnectionKey?.(edges);
+		console.log(edges);
+		this.updateConnectionKey?.();
 		const layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
 		layer.classList.add("edge-layer");
 		const pathsByIncomingPoint = new Map();
-		const types = [...new Set(edges.map(getConnectionType))];
-		const typeIndexes = new Map(types.map((type, index) => [type, index]));
 
 		for (const edge of edges) {
 			const source = this.graphNodes.get(edge.sourceId);
@@ -261,12 +251,19 @@ export class GraphDisplay {
 			path.classList.add("graph-edge");
 			path.dataset.sourceId = edge.sourceId;
 			path.dataset.targetId = edge.targetId;
-			path.dataset.connectionType = getConnectionType(edge);
-			if (types.length > 1) {
-				path.style.setProperty(
-					"--connection-color",
-					getConnectionTypeColor(typeIndexes.get(path.dataset.connectionType)),
+			const connectionTypeName = getConnectionType(edge);
+			const connectionType = this.connectionTypes?.get(connectionTypeName);
+			path.dataset.connectionType = connectionTypeName;
+			path.style.setProperty("--connection-color", connectionType?.color || DEFAULT_CONNECTION_COLOR);
+			if (connectionType) {
+				for (const [highlight, color] of Object.entries(connectionType.highlightColors)) {
+					path.style.setProperty(`--connection-${highlight}-color`, color);
+				}
+			} else if (!this.unregisteredConnectionTypes.has(connectionTypeName)) {
+				console.warn(
+					`Connection type "${connectionTypeName}" is not registered; using the neutral connection color.`,
 				);
+				this.unregisteredConnectionTypes.add(connectionTypeName);
 			}
 			const pointKey = `${end.x}:${end.y}`;
 			if (!pathsByIncomingPoint.has(pointKey)) pathsByIncomingPoint.set(pointKey, []);

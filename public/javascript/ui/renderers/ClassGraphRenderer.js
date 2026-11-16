@@ -1,6 +1,18 @@
+import { ConnectionType, DEFAULT_CONNECTION_COLOR, DEFAULT_CONNECTION_HIGHLIGHT_COLORS } from "../ConnectionType.js";
 import { GraphRenderer } from "./GraphRenderer.js";
 
 //#region Class graph renderer
+
+const connectionTypes = new Map([
+	[
+		"extends",
+		new ConnectionType({
+			type: "extends",
+			color: DEFAULT_CONNECTION_COLOR,
+			highlightColors: DEFAULT_CONNECTION_HIGHLIGHT_COLORS,
+		}),
+	],
+]);
 
 /** Render classes as nodes connected from base classes to their subclasses. */
 export class ClassGraphRenderer extends GraphRenderer {
@@ -21,6 +33,7 @@ export class ClassGraphRenderer extends GraphRenderer {
 			emptyMessage: "Choose a project folder and scan it to see its class inheritance.",
 			markerPrefix: "classArrowhead",
 			initiallyHidden: true,
+			connectionTypes,
 		});
 		this.classes = [];
 		this.edges = [];
