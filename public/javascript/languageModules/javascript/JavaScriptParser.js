@@ -1,8 +1,8 @@
 import * as acorn from "acorn";
 import * as walk from "acorn-walk";
+import { ClassSearch } from "../../core/Searches/ClassSearch.js";
 import { ExportSearch } from "../../core/Searches/ExportSearch.js";
 import { ImportSearch } from "../../core/Searches/ImportSearch.js";
-import { ClassSearch } from "../../core/Searches/ClassSearch.js";
 import { LanguageParserModule } from "../LanguageParserModule.js";
 
 //#region JavaScript parser
@@ -110,7 +110,7 @@ function analyzeFile(file) {
 	 *
 	 * @param {object} pattern Variable declaration binding pattern.
 	 * @param {string} type Inferred declaration type.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	function addBindingTypes(pattern, type) {
 		if (pattern.type === "Identifier") {
@@ -147,11 +147,12 @@ function analyzeFile(file) {
 	 */
 	function describeMember(member) {
 		const key = member.key;
-		const name = key.type === "PrivateIdentifier"
-			? `#${key.name}`
-			: key.type === "Identifier" || key.type === "Literal"
-				? String(key.name ?? key.value)
-				: getExpressionName(key) || "[computed]";
+		const name =
+			key.type === "PrivateIdentifier"
+				? `#${key.name}`
+				: key.type === "Identifier" || key.type === "Literal"
+					? String(key.name ?? key.value)
+					: getExpressionName(key) || "[computed]";
 		return {
 			name,
 			static: Boolean(member.static),
@@ -227,7 +228,7 @@ function analyzeFile(file) {
 	 * Add an exported declaration record for a variable or declaration node.
 	 *
 	 * @param {object} declaration Exported declaration AST node.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	function addDeclarationExports(declaration) {
 		if (declaration.type === "VariableDeclaration") {
@@ -254,7 +255,7 @@ function analyzeFile(file) {
 	 * Read a static import or re-export declaration into the existing import shape.
 	 *
 	 * @param {object} node Import or sourced export AST node.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	function addImport(node) {
 		const isReExport = node.type !== "ImportDeclaration";
@@ -310,9 +311,10 @@ function analyzeFile(file) {
 			continue;
 		}
 
-		const declaration = statement.type === "ExportNamedDeclaration" || statement.type === "ExportDefaultDeclaration"
-			? statement.declaration
-			: statement;
+		const declaration =
+			statement.type === "ExportNamedDeclaration" || statement.type === "ExportDefaultDeclaration"
+				? statement.declaration
+				: statement;
 		if (!declaration) continue;
 		if (declaration.type === "VariableDeclaration") {
 			for (const variable of declaration.declarations) {
@@ -327,7 +329,11 @@ function analyzeFile(file) {
 			addDeclarationExports(declaration);
 		} else if (statement.type === "ExportDefaultDeclaration") {
 			const localName = declaration.id?.name || (declaration.type === "Identifier" ? declaration.name : null);
-			if (localName && declaration.type !== "Identifier" && !declarations.some((entry) => entry.name === localName)) {
+			if (
+				localName
+				&& declaration.type !== "Identifier"
+				&& !declarations.some((entry) => entry.name === localName)
+			) {
 				declarations.push({ name: localName, type: getDeclarationType(declaration) });
 			} else if (!localName) {
 				declarations.push({ name: "default", type: getDeclarationType(declaration) });
@@ -468,7 +474,8 @@ function pathsMatchBySuffix(filePath, candidate) {
 	 * @param {string[]} suffix Segments expected at the end of the path.
 	 * @returns {boolean} Whether the path ends with the supplied segments.
 	 */
-	const hasSuffix = (path, suffix) => suffix.length <= path.length
+	const hasSuffix = (path, suffix) =>
+		suffix.length <= path.length
 		&& suffix.every((segment, index) => segment === path[path.length - suffix.length + index]);
 	return hasSuffix(fileSegments, candidateSegments) || hasSuffix(candidateSegments, fileSegments);
 }

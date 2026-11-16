@@ -241,6 +241,12 @@ button:disabled {
 	min-height: 0;
 }
 
+.graph-views {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
 .graph-toolbar {
 	display: flex;
 	flex-wrap: wrap;

@@ -10,7 +10,7 @@ export class ClassSearch extends Search {
 	 * Create the class declaration search for the selected language parser.
 	 *
 	 * @param {import("../../languageModules/LanguageParserModule.js").LanguageParserModule} languageParserModule Parser used to analyze source files.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	constructor(languageParserModule) {
 		super(languageParserModule, "classes");

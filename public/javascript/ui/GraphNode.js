@@ -7,7 +7,7 @@ export class GraphNode {
 	 *
 	 * @param {object} data Domain record represented by the node.
 	 * @param {object} options Node ID and connection-point configuration.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	constructor(data, { id = data.id, incoming = { side: "left" }, outgoing = { side: "right" } } = {}) {
 		this.id = id;
@@ -44,7 +44,8 @@ export class GraphNode {
 			}
 		}
 
-		if (configuration.side === "top") return { x: position.x + width * (configuration.anchor ?? 0.5), y: position.y };
+		if (configuration.side === "top")
+			return { x: position.x + width * (configuration.anchor ?? 0.5), y: position.y };
 		if (configuration.side === "bottom") {
 			return { x: position.x + width * (configuration.anchor ?? 0.5), y: position.y + height };
 		}

@@ -1,47 +1,51 @@
 import { createDetailsSection } from "../Details.js";
 import { createFileLabel, createImportStatusTag } from "../FileDisplay.js";
 import { GraphRenderer } from "./GraphRenderer.js";
+import { importGraphControlsTemplate } from "./GraphViewTemplates.js";
 
 const NODE_HEIGHT = 132;
 
 /** Render the import graph and its local dependency views. */
 export class ImportGraphRenderer extends GraphRenderer {
 	/**
-	 * Create the import graph renderer and connect its local-view controls.
+	 * Create an import graph view and connect its local traversal controls.
 	 *
-	 * @param {object} elements Viewport, graph layers, and local graph buttons.
-	 * @returns {void} No value is returned.
+	 * @param {{ container: HTMLElement }} options Element that contains the graph view.
+	 * @returns {void}
 	 */
-	constructor({
-		viewport,
-		world,
-		edgeSvg,
-		nodeLayer,
-		selectedEdgeSvg,
-		selectedNodeLayer,
-		emptyState,
-		showLocalButton,
-		showDependenciesButton,
-		showDependantsButton,
-		showFullGraphButton,
-	}) {
-		super({ viewport, world, edgeSvg, nodeLayer, selectedEdgeSvg, selectedNodeLayer, emptyState });
-		this.showLocalButton = showLocalButton;
-		this.showDependenciesButton = showDependenciesButton;
-		this.showDependantsButton = showDependantsButton;
-		this.showFullGraphButton = showFullGraphButton;
+	constructor({ container }) {
+		super({
+			container: container,
+			viewportClass: "graph-viewport",
+			worldClass: "graph-world",
+			edgeClass: "graph-edges",
+			nodeClass: "graph-nodes",
+			ariaLabel: "Pannable project graph",
+			emptyMessage: "Choose a project folder and scan it to see its file relationships.",
+			markerPrefix: "arrowhead",
+			selectionLayers: true,
+			controlsTemplate: importGraphControlsTemplate,
+		});
+		this.showLocalButton = this.getViewElement("[data-show-local]");
+		this.showDependenciesButton = this.getViewElement("[data-show-dependencies]");
+		this.showDependantsButton = this.getViewElement("[data-show-dependants]");
+		this.showFullGraphButton = this.getViewElement("[data-show-full-graph]");
 		this.mainGraph = null;
 		this.mainViewState = null;
 		this.localMode = false;
 		this.selectedId = null;
 		this.frontNodeId = null;
+		this.showLocalButton.addEventListener("click", () => this.showLocal());
+		this.showDependenciesButton.addEventListener("click", () => this.showDependencies());
+		this.showDependantsButton.addEventListener("click", () => this.showDependants());
+		this.showFullGraphButton.addEventListener("click", () => this.showFullGraph());
 	}
 
 	/**
 	 * Store and display the complete import graph.
 	 *
 	 * @param {object} graph Resolved import graph to display.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	render(graph) {
 		this.mainGraph = graph;
@@ -55,7 +59,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 *
 	 * @param {object} graph Import graph data containing files and edges.
 	 * @param {Map<number, object> | null} [positions=null] Existing positions to preserve.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	renderGraph(graph, positions = null) {
 		this.graph = graph;
@@ -68,12 +72,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 		this.selectedNodeLayer.replaceChildren();
 		this.nodeElements.clear();
 		this.edgeElements.clear();
-		this.setGraphNodes(
-			graph.files,
-			graph.edges,
-			(file) => file.path.full,
-			positions || this.layout(graph),
-		);
+		this.setGraphNodes(graph.files, graph.edges, (file) => file.path.full, positions || this.layout(graph));
 		this.drawNodes(graph.files);
 		this.drawEdges(graph.edges);
 		this.resizeWorld();
@@ -87,7 +86,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	/**
 	 * Show the selected file and its immediate import relationships.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	showLocal() {
 		if (this.localMode || !this.mainGraph || this.selectedId === null) return;
@@ -105,7 +104,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	/**
 	 * Show the selected file's transitive dependencies.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	showDependencies() {
 		this.showTraversal("dependencies");
@@ -114,7 +113,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	/**
 	 * Show the selected file's transitive dependants.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	showDependants() {
 		this.showTraversal("dependants");
@@ -124,7 +123,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 * Display the selected file's complete traversal in one direction.
 	 *
 	 * @param {"dependencies" | "dependants"} direction Traversal direction.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	showTraversal(direction) {
 		if (!this.localMode || !this.mainGraph || this.selectedId === null) return;
@@ -138,7 +137,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 * @param {object[] | null} [files=null] Files to include, or null for direct neighbors.
 	 * @param {object[] | null} [edges=null] Edges to include, or null for direct relationships.
 	 * @param {string} [title="Local graph"] Local graph group title.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	renderLocalGraph(files = null, edges = null, title = "Local graph") {
 		const selectedId = this.selectedId;
@@ -168,7 +167,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	/**
 	 * Restore the full import graph and its saved view state.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	showFullGraph() {
 		if (!this.localMode || !this.mainGraph || !this.mainViewState) return;
@@ -187,7 +186,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	/**
 	 * Synchronize local graph buttons with the current view and selection.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	updateLocalControls() {
 		if (this.showLocalButton) {
@@ -213,7 +212,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 * Create file nodes and register their interactive graph elements.
 	 *
 	 * @param {object[]} files Files to render as nodes.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	drawNodes(files) {
 		for (const file of files) {
@@ -503,7 +502,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 * Draw import edges with tooltips and selected-edge layering.
 	 *
 	 * @param {object[]} edges Directed import edges.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	drawEdges(edges) {
 		this.drawConnections(edges, {
@@ -518,7 +517,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 *
 	 * @param {PointerEvent} event Pointer event from the node drag handle.
 	 * @param {number} fileId File node identifier.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	startNodeDrag(event, fileId) {
 		setTimeout(() => this.bringNodeToFront(fileId), 0);
@@ -529,7 +528,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 * Select a file and update graph highlighting.
 	 *
 	 * @param {number} fileId File node identifier.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	selectFile(fileId) {
 		this.selectedId = fileId;
@@ -540,7 +539,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 * Bring a file node above adjacent nodes after interaction.
 	 *
 	 * @param {number} fileId File node identifier.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	bringNodeToFront(fileId) {
 		if (!this.nodeElements.has(fileId)) return;
@@ -552,7 +551,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	 * Select and center a file node in the graph viewport.
 	 *
 	 * @param {number} fileId File node identifier.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	focusFile(fileId) {
 		if (!this.graphNodes.has(fileId)) return;
@@ -564,7 +563,7 @@ export class ImportGraphRenderer extends GraphRenderer {
 	/**
 	 * Apply selection and extended highlighting and layer active edges and nodes.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	updateSelection() {
 		this.updateLocalControls();
@@ -578,7 +577,8 @@ export class ImportGraphRenderer extends GraphRenderer {
 		for (const edge of this.edgeElements.values()) {
 			const sourceId = Number(edge.dataset.sourceId);
 			const targetId = Number(edge.dataset.targetId);
-			const touchesSelection = sourceId === this.selectedId
+			const touchesSelection =
+				sourceId === this.selectedId
 				|| targetId === this.selectedId
 				|| edge.classList.contains("upstream-edge")
 				|| edge.classList.contains("downstream-edge");

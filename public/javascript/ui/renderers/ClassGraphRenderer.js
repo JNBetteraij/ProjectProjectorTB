@@ -5,13 +5,23 @@ import { GraphRenderer } from "./GraphRenderer.js";
 /** Render classes as nodes connected from base classes to their subclasses. */
 export class ClassGraphRenderer extends GraphRenderer {
 	/**
-	 * Create a renderer for the class graph viewport.
+	 * Create a class graph view in its container element.
 	 *
-	 * @param {{ viewport: HTMLElement, edgeSvg: SVGSVGElement, nodeLayer: HTMLElement, emptyState: HTMLElement }} elements Graph elements used by the renderer.
-	 * @returns {void} No value is returned.
+	 * @param {{ container: HTMLElement }} options Element that contains the graph view.
+	 * @returns {void}
 	 */
-	constructor({ viewport, edgeSvg, nodeLayer, emptyState }) {
-		super({ viewport, world: nodeLayer.parentElement, edgeSvg, nodeLayer, emptyState });
+	constructor({ container }) {
+		super({
+			container,
+			viewportClass: "graph-viewport class-graph-viewport",
+			worldClass: "class-graph-world",
+			edgeClass: "graph-edges class-graph-edges",
+			nodeClass: "graph-nodes class-graph-nodes",
+			ariaLabel: "Class inheritance graph",
+			emptyMessage: "Choose a project folder and scan it to see its class inheritance.",
+			markerPrefix: "classArrowhead",
+			initiallyHidden: true,
+		});
 		this.classes = [];
 		this.edges = [];
 		this.selectedId = null;
@@ -21,7 +31,7 @@ export class ClassGraphRenderer extends GraphRenderer {
 	 * Lay out class inheritance levels and draw the class nodes and arrows.
 	 *
 	 * @param {{ classes: object[], edges: object[] }} graph Resolved class graph to display.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	render(graph) {
 		this.classes = graph.classes;
@@ -79,11 +89,11 @@ export class ClassGraphRenderer extends GraphRenderer {
 	 * Draw inheritance connections using the shared graph connection router.
 	 *
 	 * @param {object[]} edges Directed base-to-derived edges.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	drawEdges(edges) {
 		this.drawConnections(edges, {
-			markerId: "classArrowhead",
+			markerId: this.markerId,
 			title: (edge) => {
 				const source = this.graphNodes.get(edge.sourceId)?.data;
 				const target = this.graphNodes.get(edge.targetId)?.data;
@@ -137,8 +147,8 @@ export class ClassGraphRenderer extends GraphRenderer {
 		memberNames.push(
 			...classRecord.methods.map((method) => `${method.static ? "static " : ""}${method.name}()`),
 			...classRecord.properties.map((property) => `${property.static ? "static " : ""}${property.name}`),
-			...classRecord.accessors.map((accessor) =>
-				`${accessor.static ? "static " : ""}${accessor.name} (accessor)`,
+			...classRecord.accessors.map(
+				(accessor) => `${accessor.static ? "static " : ""}${accessor.name} (accessor)`,
 			),
 		);
 		for (const memberName of memberNames.slice(0, 5)) {
@@ -167,7 +177,7 @@ export class ClassGraphRenderer extends GraphRenderer {
 	 * Focus a class node in the graph viewport.
 	 *
 	 * @param {number} classId Identifier of the class to focus.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	focusClass(classId) {
 		this.selectClass(classId);
@@ -178,13 +188,12 @@ export class ClassGraphRenderer extends GraphRenderer {
 	 * Select a class node and highlight its direct and enabled extended relationships.
 	 *
 	 * @param {number} classId ID of the class to select.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	selectClass(classId) {
 		this.selectedId = classId;
 		this.updateSelection();
 	}
-
 }
 
 //#endregion Class graph renderer

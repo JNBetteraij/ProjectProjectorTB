@@ -83,7 +83,7 @@
 
 			<section
 				class="graph-area"
-				aria-label="Import relationship graph"
+				aria-label="Project graph views"
 			>
 				<div class="graph-toolbar">
 					<button
@@ -114,135 +114,7 @@
 						Fit graph
 					</button>
 				</div>
-				<div
-					id="graphViewport"
-					class="graph-viewport"
-					tabindex="0"
-					aria-label="Pannable project graph"
-				>
-					<div class="graph-overlay" aria-label="Graph key and options">
-						<details class="graph-overlay-window" data-highlight-options>
-							<summary>Options</summary>
-							<div class="graph-overlay-options" data-highlight-options-list></div>
-						</details>
-						<details class="graph-overlay-window" data-graph-connection-key hidden>
-							<summary>Connection types</summary>
-							<ul class="graph-connection-key" data-connection-key-list></ul>
-						</details>
-					</div>
-					<div
-						id="graphWorld"
-						class="graph-world"
-					>
-						<svg
-							id="graphEdges"
-							class="graph-edges"
-							aria-hidden="true"
-						>
-							<defs>
-								<marker
-									id="arrowhead"
-									markerWidth="10"
-									markerHeight="8"
-									refX="8"
-									refY="4"
-									orient="auto"
-								>
-									<path d="M 0 0 L 9 4 L 0 8 z"></path>
-								</marker>
-							</defs>
-						</svg>
-						<svg
-							id="selectedGraphEdges"
-							class="selected-graph-edges"
-							aria-hidden="true"
-						></svg>
-						<div
-							id="graphNodes"
-							class="graph-nodes"
-						></div>
-						<div
-							id="selectedGraphNodes"
-							class="selected-graph-nodes"
-						></div>
-					</div>
-					<div
-						id="emptyGraph"
-						class="empty-graph"
-					>
-						Choose a project folder and scan it to see its file relationships.
-					</div>
-					<div class="local-graph-controls">
-						<button
-							id="showLocalButton"
-							type="button"
-							disabled
-						>
-							Show local
-						</button>
-						<button
-							id="showDependenciesButton"
-							type="button"
-							hidden
-						>
-							Show dependencies
-						</button>
-						<button
-							id="showDependantsButton"
-							type="button"
-							hidden
-						>
-							Show dependants
-						</button>
-						<button
-							id="showFullGraphButton"
-							type="button"
-							hidden
-						>
-							Show full graph
-						</button>
-					</div>
-				</div>
-				<div
-					id="classGraphViewport"
-					class="class-graph-viewport"
-					hidden
-					aria-label="Class inheritance graph"
-				>
-					<div
-						id="classGraphWorld"
-						class="class-graph-world"
-					>
-						<svg id="classGraphEdges" class="class-graph-edges" aria-hidden="true">
-							<defs>
-								<marker
-									id="classArrowhead"
-									markerWidth="10"
-									markerHeight="8"
-									refX="8"
-									refY="4"
-									orient="auto"
-								>
-									<path d="M 0 0 L 9 4 L 0 8 z"></path>
-								</marker>
-							</defs>
-						</svg>
-						<div id="classGraphNodes" class="class-graph-nodes"></div>
-					</div>
-					<div id="emptyClassGraph" class="empty-graph">
-						Choose a project folder and scan it to see its class inheritance.
-					</div>
-					<div class="graph-overlay" aria-label="Graph key and options">
-						<details class="graph-overlay-window" data-highlight-options>
-							<summary>Options</summary>
-							<div class="graph-overlay-options" data-highlight-options-list></div>
-						</details>
-						<details class="graph-overlay-window" data-graph-connection-key hidden>
-							<summary>Connection types</summary>
-							<ul class="graph-connection-key" data-connection-key-list></ul>
-						</details>
-					</div>
-				</div>
+				<div id="graphViews" class="graph-views"></div>
 			</section>
 		</main>
 

@@ -1,26 +1,43 @@
 import { GraphDisplay, getConnectionType, getConnectionTypeColor } from "../GraphDisplay.js";
+import { createGraphViewTemplate } from "./GraphViewTemplates.js";
 
+/**
+ * @typedef {import("./GraphViewTemplates.js").GraphViewTemplateOptions & {
+ *   container: HTMLElement,
+ *   markerPrefix: string
+ * }} GraphViewOptions
+ *
+ * @typedef {object} GraphViewElements
+ * @property {HTMLElement} viewport Graph viewport root element.
+ * @property {HTMLElement} world Transformed graph world element.
+ * @property {SVGSVGElement} edgeSvg Main graph edge layer.
+ * @property {HTMLElement} nodeLayer Main graph node layer.
+ * @property {HTMLElement} emptyState Empty graph message element.
+ * @property {SVGSVGElement | null} selectedEdgeSvg Selected edge layer, when enabled.
+ * @property {HTMLElement | null} selectedNodeLayer Selected node layer, when enabled.
+ * @property {string} markerId Unique marker ID used by this graph view.
+ */
 const highlightOptions = [
 	{ id: "upstream", label: "Highlight upstream" },
 	{ id: "downstream", label: "Highlight downstream" },
 ];
+let graphViewInstanceCount = 0;
 
 /** Provide shared graph-view controls, connection keys, and configurable highlighting. */
 export class GraphRenderer extends GraphDisplay {
 	/**
-	 * Initialize the shared graph renderer and its overlay controls.
+	 * Create a graph viewport from a reusable template and initialize shared controls.
 	 *
-	 * @param {object} elements Viewport, graph layers, and empty-state elements.
-	 * @returns {void} No value is returned.
+	 * @param {GraphViewOptions} options Graph container, view-specific classes, labels, and optional layers.
+	 * @returns {void}
 	 */
-	constructor(elements) {
+	constructor(options) {
+		const elements = createGraphView(options);
 		super(elements);
+		this.markerId = elements.markerId;
 		this.highlightOptions = this.getHighlightOptions();
 		this.highlightSettings = new Map(
-			this.highlightOptions.map((option) => [
-				option.id,
-				this.getDefaultHighlightOptions().includes(option.id),
-			]),
+			this.highlightOptions.map((option) => [option.id, this.getDefaultHighlightOptions().includes(option.id)]),
 		);
 		this.connectionKeyList = this.viewport.querySelector("[data-connection-key-list]");
 		this.connectionKeyDetails = this.viewport.querySelector("[data-graph-connection-key]");
@@ -52,9 +69,24 @@ export class GraphRenderer extends GraphDisplay {
 	}
 
 	/**
+	 * Find a required element inside this graph view.
+	 *
+	 * @param {string} selector Scoped CSS selector for an element in the view.
+	 * @returns {HTMLElement} Matching graph-view element.
+	 * @throws {Error} If the view does not contain a matching element.
+	 */
+	getViewElement(selector) {
+		const element = requireGraphElement(this.viewport, selector);
+		if (!(element instanceof HTMLElement)) {
+			throw new Error(`Graph view element ${selector} must be an HTML element.`);
+		}
+		return element;
+	}
+
+	/**
 	 * Build the view's highlight checkboxes from its supported options.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	createHighlightOptions() {
 		if (!this.highlightOptionsList || !this.highlightOptionsDetails) return;
@@ -83,7 +115,7 @@ export class GraphRenderer extends GraphDisplay {
 	 * The key is hidden when the graph contains no edges.
 	 *
 	 * @param {object[]} edges Directed edges in the current graph.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	updateConnectionKey(edges) {
 		if (!this.connectionKeyDetails || !this.connectionKeyList) return;
@@ -125,11 +157,54 @@ export class GraphRenderer extends GraphDisplay {
 	/**
 	 * Update shared node and edge highlighting for the current selection.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	updateSelection() {
 		this.highlightConnections(this.selectedId);
 	}
+}
+
+/**
+ * Create a graph view from a template and resolve its internal graph elements.
+ *
+ * @param {GraphViewOptions} options Graph container and view configuration.
+ * @returns {GraphViewElements} Graph display elements and the unique SVG marker ID.
+ * @throws {Error} If the container or any required graph-view element is missing.
+ */
+function createGraphView(options) {
+	const { container, markerPrefix, ...viewOptions } = options;
+	if (!container) throw new Error("A container element is required to create a graph view.");
+	const markerId = `${markerPrefix}-${++graphViewInstanceCount}`;
+	const template = document.createElement("template");
+	template.innerHTML = createGraphViewTemplate({ ...viewOptions, markerId });
+	const viewport = template.content.firstElementChild;
+	if (!viewport) throw new Error("Could not create the graph viewport.");
+	const elements = {
+		viewport,
+		world: requireGraphElement(viewport, "[data-graph-world]"),
+		edgeSvg: requireGraphElement(viewport, "[data-graph-edges]"),
+		nodeLayer: requireGraphElement(viewport, "[data-graph-nodes]"),
+		emptyState: requireGraphElement(viewport, "[data-graph-empty]"),
+		selectedEdgeSvg: viewport.querySelector("[data-selected-graph-edges]"),
+		selectedNodeLayer: viewport.querySelector("[data-selected-graph-nodes]"),
+		markerId,
+	};
+	container.append(viewport);
+	return elements;
+}
+
+/**
+ * Find an element required by the graph view implementation.
+ *
+ * @param {ParentNode} root View or template root to search.
+ * @param {string} selector Scoped CSS selector for the required element.
+ * @returns {Element} Matching element.
+ * @throws {Error} If the required graph-view element is missing.
+ */
+function requireGraphElement(root, selector) {
+	const element = root.querySelector(selector);
+	if (!element) throw new Error(`Graph view template is missing ${selector}.`);
+	return element;
 }
 
 /**

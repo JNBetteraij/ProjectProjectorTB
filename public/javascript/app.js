@@ -22,8 +22,7 @@ const closeControlsButton = document.querySelector("#closeControlsButton");
 const fitGraphButton = document.querySelector("#fitGraphButton");
 const showImportGraphButton = document.querySelector("#showImportGraphButton");
 const showClassGraphButton = document.querySelector("#showClassGraphButton");
-const importGraphViewport = document.querySelector("#graphViewport");
-const classGraphViewport = document.querySelector("#classGraphViewport");
+const graphViewsContainer = document.querySelector("#graphViews");
 const graphInstructions = document.querySelector("#graphInstructions");
 const statusElement = document.querySelector("#status");
 const projectSummary = document.querySelector("#projectSummary");
@@ -37,24 +36,11 @@ const scanner = new Scanner([
 ]);
 const graphBuilder = new ImportsGraphBuilder();
 const importGraphRenderer = new ImportGraphRenderer({
-	viewport: document.querySelector("#graphViewport"),
-	world: document.querySelector("#graphWorld"),
-	edgeSvg: document.querySelector("#graphEdges"),
-	nodeLayer: document.querySelector("#graphNodes"),
-	selectedEdgeSvg: document.querySelector("#selectedGraphEdges"),
-	selectedNodeLayer: document.querySelector("#selectedGraphNodes"),
-	emptyState: document.querySelector("#emptyGraph"),
-	showLocalButton: document.querySelector("#showLocalButton"),
-	showDependenciesButton: document.querySelector("#showDependenciesButton"),
-	showDependantsButton: document.querySelector("#showDependantsButton"),
-	showFullGraphButton: document.querySelector("#showFullGraphButton"),
+	container: graphViewsContainer,
 });
 const classGraphBuilder = new ClassesGraphBuilder();
 const classGraphRenderer = new ClassGraphRenderer({
-	viewport: classGraphViewport,
-	edgeSvg: document.querySelector("#classGraphEdges"),
-	nodeLayer: document.querySelector("#classGraphNodes"),
-	emptyState: document.querySelector("#emptyClassGraph"),
+	container: graphViewsContainer,
 });
 const scopeListRenderer = new ScopeListRenderer(document.querySelector("#scopeList"), {
 	onSelectFile: (fileId) => importGraphRenderer.selectFile(fileId),
@@ -69,10 +55,6 @@ closeControlsButton.addEventListener("click", () => controlsDialog.close());
 fitGraphButton.addEventListener("click", fitActiveGraph);
 showImportGraphButton.addEventListener("click", () => showGraph("imports"));
 showClassGraphButton.addEventListener("click", () => showGraph("classes"));
-importGraphRenderer.showLocalButton.addEventListener("click", () => importGraphRenderer.showLocal());
-importGraphRenderer.showFullGraphButton.addEventListener("click", () => importGraphRenderer.showFullGraph());
-importGraphRenderer.showDependenciesButton.addEventListener("click", () => importGraphRenderer.showDependencies());
-importGraphRenderer.showDependantsButton.addEventListener("click", () => importGraphRenderer.showDependants());
 downloadButton.addEventListener("click", downloadJson);
 copyButton.addEventListener("click", copyJson);
 scanForm.addEventListener("submit", (event) => {
@@ -164,14 +146,14 @@ function createJsonExport() {
  * Switch between the existing file import graph and the class inheritance graph.
  *
  * @param {"imports" | "classes"} graphKind Graph view to display.
- * @returns {void} No value is returned.
+ * @returns {void}
  */
 //#region Graph view controls
 
 function showGraph(graphKind) {
 	const showClasses = graphKind === "classes";
-	importGraphViewport.hidden = showClasses;
-	classGraphViewport.hidden = !showClasses;
+	importGraphRenderer.viewport.hidden = showClasses;
+	classGraphRenderer.viewport.hidden = !showClasses;
 	showImportGraphButton.setAttribute("aria-pressed", String(!showClasses));
 	showClassGraphButton.setAttribute("aria-pressed", String(showClasses));
 	graphInstructions.textContent = showClasses
@@ -186,10 +168,10 @@ function showGraph(graphKind) {
 /**
  * Fit whichever graph is currently visible to its viewport.
  *
- * @returns {void} No value is returned.
+ * @returns {void}
  */
 function fitActiveGraph() {
-	if (classGraphViewport.hidden) importGraphRenderer.fit();
+	if (classGraphRenderer.viewport.hidden) importGraphRenderer.fit();
 	else classGraphRenderer.fit();
 }
 

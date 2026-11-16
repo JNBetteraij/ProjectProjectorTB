@@ -34,17 +34,9 @@ export class GraphDisplay {
 	 * Initialize a graph viewport and register shared pan, zoom, and drag interactions.
 	 *
 	 * @param {object} elements Viewport, world, node layer, and SVG elements for this graph.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
-	constructor({
-		viewport,
-		world,
-		edgeSvg,
-		nodeLayer,
-		emptyState,
-		selectedEdgeSvg = null,
-		selectedNodeLayer = null,
-	}) {
+	constructor({ viewport, world, edgeSvg, nodeLayer, emptyState, selectedEdgeSvg = null, selectedNodeLayer = null }) {
 		this.viewport = viewport;
 		this.world = world;
 		this.edgeSvg = edgeSvg;
@@ -72,7 +64,7 @@ export class GraphDisplay {
 	 * Run graph setup now when visible, or defer it until the viewport is shown.
 	 *
 	 * @param {() => void} callback Setup to run after the graph can be measured.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	runWhenVisible(callback) {
 		if (this.viewport.hidden) {
@@ -86,7 +78,7 @@ export class GraphDisplay {
 	/**
 	 * Run setup deferred while this graph's viewport was hidden.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	onVisible() {
 		if (this.viewport.hidden || !this.pendingVisibleCallback) return;
@@ -203,7 +195,7 @@ export class GraphDisplay {
 	 * @param {object[]} edges Directed connections between node IDs.
 	 * @param {(node: object) => string} getLabel Stable display label used for node ordering.
 	 * @param {Map<number, object> | null} [positions=null] Existing positions to preserve.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	setGraphNodes(nodes, edges, getLabel, positions = null) {
 		this.graphNodes.clear();
@@ -243,7 +235,7 @@ export class GraphDisplay {
 	 *
 	 * @param {object[]} edges Directed edge records.
 	 * @param {{ markerId?: string, title?: (edge: object) => string, selectedLayer?: SVGSVGElement }} [options={}] Connection rendering options.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	drawConnections(edges, { markerId = "arrowhead", title = () => "", selectedLayer = null } = {}) {
 		this.edgeSvg.querySelectorAll(".edge-layer").forEach((layer) => layer.remove());
@@ -370,9 +362,8 @@ export class GraphDisplay {
 		for (let index = 0; index < queue.length; index++) {
 			const currentId = queue[index];
 			for (const edge of this.graph?.edges || []) {
-				const followsDirection = direction === "upstream"
-					? edge.targetId === currentId
-					: edge.sourceId === currentId;
+				const followsDirection =
+					direction === "upstream" ? edge.targetId === currentId : edge.sourceId === currentId;
 				if (!followsDirection) continue;
 				const neighborId = direction === "upstream" ? edge.sourceId : edge.targetId;
 				if (currentId === selectedId) directNodeIds.add(neighborId);
@@ -394,7 +385,7 @@ export class GraphDisplay {
 	/**
 	 * Resize the graph world and its SVG layers to contain all nodes and connections.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	resizeWorld() {
 		const nodes = [...this.graphNodes.values()];
@@ -469,7 +460,7 @@ export class GraphDisplay {
 	/**
 	 * Fit the current graph to its viewport.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	fit() {
 		if (!this.graphNodes.size) {
@@ -489,23 +480,21 @@ export class GraphDisplay {
 	 * Focus and center a graph node in the viewport.
 	 *
 	 * @param {number} nodeId Identifier of the node to center.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	focusNode(nodeId) {
 		const node = this.graphNodes.get(nodeId);
 		if (!node) return;
 		const position = node.position;
-		this.pan.x = this.viewport.clientWidth / 2
-			- (position.x + this.getNodeWidth(nodeId) / 2) * this.pan.scale;
-		this.pan.y = this.viewport.clientHeight / 2
-			- (position.y + this.getNodeHeight(nodeId) / 2) * this.pan.scale;
+		this.pan.x = this.viewport.clientWidth / 2 - (position.x + this.getNodeWidth(nodeId) / 2) * this.pan.scale;
+		this.pan.y = this.viewport.clientHeight / 2 - (position.y + this.getNodeHeight(nodeId) / 2) * this.pan.scale;
 		this.applyTransform();
 	}
 
 	/**
 	 * Apply the current translation and scale to the graph world.
 	 *
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	applyTransform() {
 		this.world.style.transform = `translate(${this.pan.x}px, ${this.pan.y}px) scale(${this.pan.scale})`;
@@ -515,7 +504,7 @@ export class GraphDisplay {
 	 * Start panning when the user presses the primary pointer on the viewport.
 	 *
 	 * @param {PointerEvent} event Pointer event from the graph viewport.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	startPan(event) {
 		if (
@@ -523,7 +512,8 @@ export class GraphDisplay {
 			|| event.target.closest(
 				".graph-node, .class-graph-node, .graph-edge, .local-graph-controls, .graph-overlay",
 			)
-		) return;
+		)
+			return;
 		this.dragState = {
 			type: "pan",
 			pointerId: event.pointerId,
@@ -540,7 +530,7 @@ export class GraphDisplay {
 	 *
 	 * @param {PointerEvent} event Pointer event from a node drag handle.
 	 * @param {number} nodeId Identifier of the node being moved.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	startNodeDrag(event, nodeId) {
 		if (event.button !== 0) return;
@@ -564,7 +554,7 @@ export class GraphDisplay {
 	 * Move the graph view or a graph node according to the active pointer drag.
 	 *
 	 * @param {PointerEvent} event Pointer movement event.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	movePointer(event) {
 		if (!this.dragState || event.pointerId !== this.dragState.pointerId) return;
@@ -592,7 +582,7 @@ export class GraphDisplay {
 	 * Finalize a pointer drag and notify the renderer when a node moved.
 	 *
 	 * @param {PointerEvent} [event] Pointer event ending the drag.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	endPointer(event) {
 		if (event && this.dragState?.pointerId !== event.pointerId) return;
@@ -638,7 +628,7 @@ export class GraphDisplay {
 	 * Zoom around the pointer position while preserving its graph-space anchor.
 	 *
 	 * @param {WheelEvent} event Wheel event from the graph viewport.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	zoom(event) {
 		if (!this.graphNodes.size) return;
@@ -660,7 +650,7 @@ export class GraphDisplay {
 	 * Draw all graph edges with the default marker and title.
 	 *
 	 * @param {object[]} edges Directed graph edges.
-	 * @returns {void} No value is returned.
+	 * @returns {void}
 	 */
 	drawEdges(edges) {
 		this.drawConnections(edges);
@@ -769,12 +759,7 @@ function getColumnRanks(nodes, edges) {
  */
 function createConnectionRoute(start, end) {
 	const middleX = (start.x + end.x) / 2;
-	return [
-		start,
-		{ x: middleX, y: start.y },
-		{ x: middleX, y: end.y },
-		end,
-	];
+	return [start, { x: middleX, y: start.y }, { x: middleX, y: end.y }, end];
 }
 
 /**
