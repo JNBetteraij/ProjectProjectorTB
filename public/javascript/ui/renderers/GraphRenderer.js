@@ -1,5 +1,6 @@
 import { GraphDisplay } from "../GraphDisplay.js";
 import { createGraphViewTemplate } from "./GraphViewTemplates.js";
+import ConnectionTypesPanel from "./components/ConnectionTypesPanel.js";
 import OptionsPanel from "./components/OptionsPanel.js";
 
 /**
@@ -42,8 +43,12 @@ export class GraphRenderer extends GraphDisplay {
 		this.highlightSettings = new Map(
 			this.highlightOptions.map((option) => [option.id, this.getDefaultHighlightOptions().includes(option.id)]),
 		);
-		this.connectionKeyList = this.viewport.querySelector("[data-connection-key-list]");
-		this.connectionKeyDetails = this.viewport.querySelector("[data-graph-connection-key]");
+		const connectionTypesPanelPlaceholder = this.viewport.querySelector("[data-connection-types-panel]");
+		if (!(connectionTypesPanelPlaceholder instanceof HTMLTemplateElement)) {
+			throw new Error("Graph view template is missing [data-connection-types-panel].");
+		}
+		this.connectionTypesPanel = new ConnectionTypesPanel();
+		connectionTypesPanelPlaceholder.replaceWith(this.connectionTypesPanel.element);
 		const optionsPanelPlaceholder = this.viewport.querySelector("[data-options-panel]");
 		if (!(optionsPanelPlaceholder instanceof HTMLTemplateElement)) {
 			throw new Error("Graph view template is missing [data-options-panel].");
@@ -94,7 +99,7 @@ export class GraphRenderer extends GraphDisplay {
 	 * @returns {void}
 	 */
 	createGraphDisplayOptions() {
-		this.optionsPanel.setOptions(
+		this.optionsPanel.setContents(
 			this.highlightOptions.map((option) => ({
 				...option,
 				checked: this.highlightSettings.get(option.id) || false,
@@ -114,54 +119,7 @@ export class GraphRenderer extends GraphDisplay {
 	 * @returns {void}
 	 */
 	updateConnectionKey() {
-		if (!this.connectionKeyDetails || !this.connectionKeyList) return;
-
-		const connectionTypes = this.connectionTypes;
-		console.log(connectionTypes);
-
-		this.connectionKeyDetails.hidden = false;
-		this.connectionKeyList.replaceChildren();
-		for (const [key, type] of connectionTypes) {
-			console.log(type);
-			this.connectionKeyList.append(this.createConnectionKeyItem(formatConnectionType(type.type), type.color));
-		}
-
-		// const edges = this.graph?.edges || [];
-		// const presentTypes = new Set(edges.map(getConnectionType));
-		// const types = [...this.connectionTypes.values()].filter((type) => presentTypes.has(type.type));
-		// const hasEdges = edges.length > 0;
-		// this.connectionKeyDetails.hidden = !hasEdges || types.length === 0;
-		// this.connectionKeyList.replaceChildren();
-		// if (!hasEdges || types.length === 0) return;
-
-		// for (const type of types) {
-		// 	this.connectionKeyList.append(this.createConnectionKeyItem(formatConnectionType(type.type), type.color));
-		// }
-		// const highlightColors = types[0].highlightColors;
-		// this.connectionKeyList.append(
-		// 	this.createConnectionKeyItem("Incoming highlight", highlightColors.incoming),
-		// 	this.createConnectionKeyItem("Outgoing highlight", highlightColors.outgoing),
-		// );
-	}
-
-	/**
-	 * Create one labeled color swatch in the connection key.
-	 *
-	 * @param {string} label Key entry label.
-	 * @param {string} color CSS color or variable for the swatch.
-	 * @returns {HTMLLIElement} Rendered connection key entry.
-	 */
-	createConnectionKeyItem(label, color) {
-		const item = document.createElement("li");
-		item.className = "graph-connection-key-item";
-		const swatch = document.createElement("span");
-		swatch.className = "graph-connection-key-swatch";
-		swatch.style.setProperty("--connection-color", color);
-		swatch.setAttribute("aria-hidden", "true");
-		const text = document.createElement("span");
-		text.textContent = label;
-		item.append(swatch, text);
-		return item;
+		this.connectionTypesPanel.setContents(this.connectionTypes);
 	}
 
 	/**
@@ -215,14 +173,4 @@ function requireGraphElement(root, selector) {
 	const element = root.querySelector(selector);
 	if (!element) throw new Error(`Graph view template is missing ${selector}.`);
 	return element;
-}
-
-/**
- * Format a connection type identifier for its user-facing key label.
- *
- * @param {string} type Connection type identifier.
- * @returns {string} Readable connection type label.
- */
-function formatConnectionType(type) {
-	return type.charAt(0).toUpperCase() + type.slice(1);
 }

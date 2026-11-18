@@ -55,7 +55,8 @@ export default class Component {
 		const placeholderTag = "component-placeholder";
 
 		let htmlString = "";
-		const components = new Map();
+		const placeHolders = new Map();
+
 		let id = 0;
 
 		for (const [index, string] of strings.entries()) {
@@ -69,16 +70,17 @@ export default class Component {
 		template.innerHTML = htmlString;
 		const fragment = template.content;
 
-		for (const [id, component] of components) {
+		//insert nodes and components for placeholders
+		for (const [id, content] of placeHolders) {
 			const placeholder = fragment.querySelector(`${placeholderTag}[data-id="${id}"]`);
 
-			placeholder.replaceWith(component.element);
+			placeholder.replaceWith(content instanceof Node ? content : content.element);
 		}
 
 		return fragment;
 
-		function componentPlaceholder(value) {
-			components.set(id, value);
+		function addPlaceholder(value) {
+			placeHolders.set(id, value);
 			return `<${placeholderTag} data-id="${id++}"></${placeholderTag}>`;
 		}
 
@@ -86,8 +88,8 @@ export default class Component {
 			if (Array.isArray(value)) {
 				return value.map((val) => normalize(val)).join("");
 			}
-			if (value instanceof Component) {
-				return componentPlaceholder(value);
+			if (value instanceof Component || value instanceof Node) {
+				return addPlaceholder(value);
 			}
 
 			return value;

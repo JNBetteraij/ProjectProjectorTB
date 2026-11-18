@@ -9,15 +9,15 @@ import DetailPanel from "./DetailPanel.js";
  */
 
 /** A collapsible graph-overlay panel containing configurable options. */
-export default class OptionsPanel extends Component {
+export default class OptionsPanel extends DetailPanel {
 	/**
+	 * @param {options?}: GraphDisplayOptions[],
 	 * @param {{
-	 *   options?: GraphDisplayOptions[],
 	 *   hideWhenEmpty?: boolean
 	 * }} [properties] Panel options.
 	 */
 	constructor({ options = [], hideWhenEmpty = true } = {}) {
-		super({ summaryTitle: "Options", options, hideWhenEmpty });
+		super(options, { summaryTitle: "Options", hideWhenEmpty });
 	}
 
 	/** Build the options panel and preserve its graph-overlay references.
@@ -25,35 +25,21 @@ export default class OptionsPanel extends Component {
 	 * @param {{
 	 *   summaryTitle: string,
 	 *   options: GraphDisplayOptions[],
-	 *   hideWhenEmpty: boolean
 	 * }} data Component data.
 	 * @returns {DetailPanel} The constructed detail panel.
 	 */
 	constructComponent(data) {
-		const detailPanel = new DetailPanel({
-			summaryTitle: data.summaryTitle,
-			contents: [],
-		});
+		const component = super.constructComponent(data);
 
-		detailPanel.contents.className = "graph-overlay-options";
-		// detailPanel.element.setAttribute("data-highlight-options", "");
-		// detailPanel.contents.setAttribute("data-highlight-options-list", "");
-
-		this.details = detailPanel.element;
-		this.optionsList = detailPanel.contents;
-		this.hideWhenEmpty = data.hideWhenEmpty;
-		this.setOptions(data.options);
-
-		return detailPanel;
+		return component;
 	}
 
 	/**
-	 * @param {GraphDisplayOptions[]} options Option records to render.
-	 * @returns {void}
+	 * @param {GraphDisplayOptions[]} options Option items to render.
+	 * @returns {GraphOptionComponent[]} Components for the detail panel.
 	 */
-	setOptions(options) {
-		this.optionsList.replaceChildren(...options.map((option) => new GraphOptionComponent(option).element));
-		this.details.hidden = this.hideWhenEmpty && options.length === 0;
+	constructContents(options) {
+		return options.map((option) => new GraphOptionComponent(option).element);
 	}
 
 	/** Return the panel markup.

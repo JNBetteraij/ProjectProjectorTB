@@ -6,14 +6,6 @@ export const optionsPanelTemplate = `
 	</details>
 `;
 
-/** Reusable connection-type key markup for graph view templates. */
-export const connectionTypesPanelTemplate = `
-	<details class="graph-overlay-window" data-graph-connection-key hidden>
-		<summary>Connection types</summary>
-		<ul class="graph-connection-key" data-connection-key-list></ul>
-	</details>
-`;
-
 /** Local traversal controls available in the import graph view. */
 export const importGraphControlsTemplate = `
 	<div class="local-graph-controls">
@@ -60,7 +52,7 @@ export function createGraphViewTemplate({
 		<div class="${viewportClass}" data-graph-viewport tabindex="0" aria-label="${ariaLabel}"${initiallyHidden ? " hidden" : ""}>
 			<div class="graph-overlay" aria-label="Graph key and options">
 				<template data-options-panel></template>
-				${connectionTypesPanelTemplate}
+				<template data-connection-types-panel></template>
 				
 			</div>
 			<div class="${worldClass}" data-graph-world>

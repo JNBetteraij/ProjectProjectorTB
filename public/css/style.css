@@ -356,6 +356,17 @@ button:disabled {
 	gap: 0.5rem;
 }
 
+.graph-connection-key-entry {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.graph-connection-key-subitems {
+	display: grid;
+	gap: 0.35rem;
+	margin-left: 1.75rem;
+}
+
 .graph-connection-key-swatch {
 	flex: 0 0 auto;
 	width: 1.25rem;
