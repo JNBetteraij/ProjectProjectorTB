@@ -5,7 +5,7 @@ export default class DetailPanel extends Component {
 		super({ summaryTitle, contents });
 	}
 
-	createDomFragment(data) {
+	constructComponent(data) {
 		//hmtl template
 		const fragment = this.html`
 			<details class="graph-overlay-window">

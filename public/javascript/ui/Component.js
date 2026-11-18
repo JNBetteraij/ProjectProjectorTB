@@ -1,6 +1,6 @@
 export default class Component {
 	constructor(data) {
-		const fragment = this.createDomFragment(data);
+		const fragment = this.#createDomFragment(data);
 
 		if (!(fragment instanceof DocumentFragment)) {
 			throw new TypeError("Component template must return a DocumentFragment.");
@@ -16,8 +16,38 @@ export default class Component {
 		this.element.script = this;
 	}
 
-	createDomFragment() {
-		throw new TypeError("Does not implement createDomFragment function.");
+	constructComponent() {
+		throw new TypeError(`Missing implementation of constructComponent function in ${this.constructor.name}.`);
+	}
+
+	#createDomFragment(data) {
+		const component = this.constructComponent(data);
+		const fragment = this.normalizeToDocumentFragment(component);
+
+		return fragment;
+	}
+
+	/** Normalizes a component or DOM node into a DocumentFragment.
+	 *
+	 * @param {Node|Component} node - The DOM node or component to normalize.
+	 * @returns {DocumentFragment} The normalized document fragment.
+	 * @throws {TypeError} If the provided value cannot be normalized into a DocumentFragment.
+	 */
+	normalizeToDocumentFragment(node) {
+		if (node instanceof DocumentFragment) {
+			return node;
+		}
+
+		if (node instanceof Component) {
+			node = node.element;
+		}
+		if (node instanceof Node) {
+			const fragment = document.createDocumentFragment();
+			fragment.appendChild(node);
+			return fragment;
+		}
+
+		throw new TypeError(`Cannot parse ${node} as DocumentFragment`);
 	}
 
 	html(strings, ...values) {
@@ -56,8 +86,9 @@ export default class Component {
 			if (Array.isArray(value)) {
 				return value.map((val) => normalize(val)).join("");
 			}
-			if (value instanceof Component) return componentPlaceholder(value);
-			//some kind of check/conversion to stringable value
+			if (value instanceof Component) {
+				return componentPlaceholder(value);
+			}
 
 			return value;
 		}

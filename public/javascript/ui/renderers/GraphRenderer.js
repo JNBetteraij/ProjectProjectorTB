@@ -1,5 +1,6 @@
 import { GraphDisplay } from "../GraphDisplay.js";
 import { createGraphViewTemplate } from "./GraphViewTemplates.js";
+import OptionsPanel from "./components/OptionsPanel.js";
 
 /**
  * @typedef {import("./GraphViewTemplates.js").GraphViewTemplateOptions & {
@@ -43,9 +44,13 @@ export class GraphRenderer extends GraphDisplay {
 		);
 		this.connectionKeyList = this.viewport.querySelector("[data-connection-key-list]");
 		this.connectionKeyDetails = this.viewport.querySelector("[data-graph-connection-key]");
-		this.highlightOptionsList = this.viewport.querySelector("[data-highlight-options-list]");
-		this.highlightOptionsDetails = this.viewport.querySelector("[data-highlight-options]");
-		this.createHighlightOptions();
+		const optionsPanelPlaceholder = this.viewport.querySelector("[data-options-panel]");
+		if (!(optionsPanelPlaceholder instanceof HTMLTemplateElement)) {
+			throw new Error("Graph view template is missing [data-options-panel].");
+		}
+		this.optionsPanel = new OptionsPanel();
+		optionsPanelPlaceholder.replaceWith(this.optionsPanel.element);
+		this.createGraphDisplayOptions();
 	}
 
 	/**
@@ -86,29 +91,19 @@ export class GraphRenderer extends GraphDisplay {
 	}
 
 	/**
-	 * Build the view's highlight checkboxes from its supported options.
-	 *
 	 * @returns {void}
 	 */
-	createHighlightOptions() {
-		if (!this.highlightOptionsList || !this.highlightOptionsDetails) return;
-		this.highlightOptionsDetails.hidden = this.highlightOptions.length === 0;
-		this.highlightOptionsList.replaceChildren();
-		for (const option of this.highlightOptions) {
-			const label = document.createElement("label");
-			label.className = "graph-overlay-option";
-			const checkbox = document.createElement("input");
-			checkbox.type = "checkbox";
-			checkbox.checked = this.highlightSettings.get(option.id) || false;
-			checkbox.addEventListener("change", () => {
-				this.highlightSettings.set(option.id, checkbox.checked);
-				this.updateSelection?.();
-			});
-			const text = document.createElement("span");
-			text.textContent = option.label;
-			label.append(checkbox, text);
-			this.highlightOptionsList.append(label);
-		}
+	createGraphDisplayOptions() {
+		this.optionsPanel.setOptions(
+			this.highlightOptions.map((option) => ({
+				...option,
+				checked: this.highlightSettings.get(option.id) || false,
+				onChange: (checked) => {
+					this.highlightSettings.set(option.id, checked);
+					this.updateSelection?.();
+				},
+			})),
+		);
 	}
 
 	/**

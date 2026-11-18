@@ -1,7 +1,3 @@
-import { ConnectionType, DEFAULT_CONNECTION_COLOR, DEFAULT_CONNECTION_HIGHLIGHT_COLORS } from "../ConnectionType.js";
-import ConnectionTypesPanel from "./components/ConnectionTypesPanel.js";
-import DetailPanel from "./components/DetailPanel.js";
-
 /** Reusable options panel markup for graph view templates. */
 export const optionsPanelTemplate = `
 	<details class="graph-overlay-window" data-highlight-options>
@@ -60,45 +56,11 @@ export function createGraphViewTemplate({
 	controlsTemplate = "",
 	initiallyHidden = false,
 }) {
-	const otherPanelTest = new DetailPanel({ summaryTitle: "Test content" });
-	const detailPanelTest = new DetailPanel({ summaryTitle: "Test title", contents: otherPanelTest });
-
-	const testConnections = new Map([
-		[
-			"export",
-			new ConnectionType({
-				type: "export",
-				color: "rgb(148, 15, 15)",
-				highlightColors: DEFAULT_CONNECTION_HIGHLIGHT_COLORS,
-			}),
-		],
-		[
-			"extends",
-			new ConnectionType({
-				type: "extends",
-				color: DEFAULT_CONNECTION_COLOR,
-				highlightColors: DEFAULT_CONNECTION_HIGHLIGHT_COLORS,
-			}),
-		],
-		[
-			"using",
-			new ConnectionType({
-				type: "using",
-				color: "rgb(137, 15, 148)",
-				highlightColors: DEFAULT_CONNECTION_HIGHLIGHT_COLORS,
-			}),
-		],
-	]);
-
-	const keyPanelTest = new ConnectionTypesPanel({ keys: testConnections });
-
 	return /* html */ `
 		<div class="${viewportClass}" data-graph-viewport tabindex="0" aria-label="${ariaLabel}"${initiallyHidden ? " hidden" : ""}>
 			<div class="graph-overlay" aria-label="Graph key and options">
-				${optionsPanelTemplate}
+				<template data-options-panel></template>
 				${connectionTypesPanelTemplate}
-				${detailPanelTest.render()}
-				${keyPanelTest.render()}
 				
 			</div>
 			<div class="${worldClass}" data-graph-world>
