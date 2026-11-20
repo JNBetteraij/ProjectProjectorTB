@@ -11,35 +11,37 @@ import DetailPanel from "./DetailPanel.js";
 /** A collapsible graph-overlay panel containing configurable options. */
 export default class OptionsPanel extends DetailPanel {
 	/**
-	 * @param {options?}: GraphDisplayOptions[],
 	 * @param {{
+	 *   options?: GraphDisplayOptions[],
 	 *   hideWhenEmpty?: boolean
 	 * }} [properties] Panel options.
 	 */
-	constructor({ options = [], hideWhenEmpty = true } = {}) {
+	constructor(options = [], { hideWhenEmpty = true } = {}) {
 		super(options, { summaryTitle: "Options", hideWhenEmpty });
 	}
 
-	/** Build the options panel and preserve its graph-overlay references.
+	/** Compose the options panel using the base detail panel markup.
 	 *
 	 * @param {{
 	 *   summaryTitle: string,
-	 *   options: GraphDisplayOptions[],
+	 *   contents: GraphDisplayOptions[],
 	 * }} data Component data.
-	 * @returns {DetailPanel} The constructed detail panel.
+	 * @returns {DocumentFragment} The panel markup.
 	 */
-	constructComponent(data) {
-		const component = super.constructComponent(data);
+	composeComponent(data) {
+		const component = super.composeComponent(data);
 
 		return component;
 	}
 
-	/**
+	/** Create a checkbox row for each graph display option.
+	 *
 	 * @param {GraphDisplayOptions[]} options Option items to render.
-	 * @returns {GraphOptionComponent[]} Components for the detail panel.
+	 * @returns {HTMLElement[]} Option row elements.
 	 */
-	constructContents(options) {
-		return options.map((option) => new GraphOptionComponent(option).element);
+	composeContents(options) {
+		const contents = options.map((option) => new CheckboxGraphDisplayOption(option));
+		return contents;
 	}
 
 	/** Return the panel markup.
@@ -52,9 +54,9 @@ export default class OptionsPanel extends DetailPanel {
 }
 
 /** A checkbox row displayed inside an options panel. */
-class GraphOptionComponent extends Component {
+class CheckboxGraphDisplayOption extends Component {
 	/**
-	 * @param {GraphDisplayOptions} properties Option row properties.
+	 * @param {GraphDisplayOptions & { id: string, label: string }} properties Option row properties.
 	 */
 	constructor({ id, label, checked = false, onChange = null } = {}) {
 		super({ id, label, checked, onChange });
@@ -65,18 +67,22 @@ class GraphOptionComponent extends Component {
 	 * @param {GraphDisplayOptions & { id: string }} data Option row data.
 	 * @returns {DocumentFragment} The checkbox row fragment.
 	 */
-	constructComponent(data) {
+	composeComponent(data) {
+		const checkedState = data.checked ? "checked" : "";
+
 		const fragment = this.html`
 			<label class="graph-overlay-option">
-				<input type="checkbox" />
+				<input type="checkbox" ${checkedState}/>
 				<span>${data.label}</span>
 			</label>
 		`;
-		const checkbox = fragment.querySelector("input");
-		checkbox.checked = data.checked;
-		checkbox.addEventListener("change", () => {
-			data.onChange?.(checkbox.checked);
-		});
+
+		if (typeof data.onChange === "function") {
+			const checkbox = fragment.querySelector("input");
+			checkbox.addEventListener("change", (event) => {
+				data.onChange(event.target.checked, event);
+			});
+		}
 
 		return fragment;
 	}

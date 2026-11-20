@@ -2,7 +2,15 @@ import Component from "../../Component.js";
 
 const emptyString = "";
 
+/** A collapsible panel for rendering and updating content. */
 export default class DetailPanel extends Component {
+	/**
+	 * @param {unknown} [contents=[]] Initial content passed to {@link composeContents}.
+	 * @param {{
+	 *   summaryTitle?: string,
+	 *   hideWhenEmpty?: boolean
+	 * }} [properties] Panel display options.
+	 */
 	constructor(contents = [], { summaryTitle, hideWhenEmpty = true } = {}) {
 		super({ contents, summaryTitle });
 
@@ -10,7 +18,13 @@ export default class DetailPanel extends Component {
 		this.hideIfEmpty();
 	}
 
-	constructComponent(data) {
+	/**
+	 * Compose the collapsible panel markup and retain its content container.
+	 *
+	 * @param {{ contents: unknown, summaryTitle: string }} data Panel component data.
+	 * @returns {DocumentFragment} The panel markup.
+	 */
+	composeComponent(data) {
 		//HTML template
 		const fragment = this.html`
 			<details class="graph-overlay-window">
@@ -24,12 +38,25 @@ export default class DetailPanel extends Component {
 
 		return fragment;
 	}
+
+	/**
+	 * Convert the panel content data into values for the content container.
+	 *
+	 * @param {{ contents: unknown }} data Panel component data.
+	 * @returns {unknown} Normalized panel contents, or an empty string when contents is falsy.
+	 */
 	extractContents(data) {
 		if (!data.contents) return emptyString;
-		return this.constructContents(data.contents);
+		return this.composeContents(data.contents);
 	}
 
-	constructContents(contents) {
+	/**
+	 * Normalize content into an array, using iterable values and object values when applicable.
+	 *
+	 * @param {unknown} contents Content to normalize.
+	 * @returns {unknown[]} Normalized content values.
+	 */
+	composeContents(contents) {
 		if (contents == null) return [];
 		//handle Nodes and DocumentFragments.
 		if (contents instanceof Node) return [contents];
@@ -37,23 +64,37 @@ export default class DetailPanel extends Component {
 		if (typeof contents !== "object") return [String(contents)];
 		//handle ordinary objects
 		if (!(Symbol.iterator in contents)) return Object.values(contents);
-		//handle remaining collection types (Maps return their values, not keys)
+		//handle maps by creating an array from their values
+		if (contents instanceof Map) return Array.from(contents.values());
+		//handle remaining collection types
 		return Array.from(contents instanceof Map ? contents.values() : contents);
 	}
 
+	/**
+	 * Hide the panel when configured to do so and its content container is empty.
+	 *
+	 * @param {HTMLElement} [element=this.element] Element whose visibility to update.
+	 * @returns {void}
+	 */
 	hideIfEmpty(element = this.element) {
-		element.hidden = this.hideWhenEmpty && this.content.innerHTML === "";
+		element.hidden = this.hideWhenEmpty && this.content.innerHTML.trim() === "";
 	}
 
-	/**
-	 * @param {Component[]} contents Components to add to the detail panel.
+	/** Replace the panel contents and update its visibility.
+	 *
+	 * @param {unknown} contents Content values to normalize and add to the panel.
 	 * @returns {void}
 	 */
 	setContents(contents) {
-		this.content.replaceChildren(...this.constructContents(contents));
+		this.content.replaceChildren(this.html`${this.composeContents(contents)}`);
 		this.hideIfEmpty();
 	}
 
+	/**
+	 * Return the panel markup.
+	 *
+	 * @returns {string} Serialized panel HTML.
+	 */
 	render() {
 		return this.element.outerHTML;
 	}

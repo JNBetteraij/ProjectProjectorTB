@@ -16,12 +16,12 @@ export default class Component {
 		this.element.script = this;
 	}
 
-	constructComponent() {
+	composeComponent() {
 		throw new TypeError(`Missing implementation of constructComponent function in ${this.constructor.name}.`);
 	}
 
 	#createDomFragment(data) {
-		const component = this.constructComponent(data);
+		const component = this.composeComponent(data);
 		const fragment = this.normalizeToDocumentFragment(component);
 
 		return fragment;
