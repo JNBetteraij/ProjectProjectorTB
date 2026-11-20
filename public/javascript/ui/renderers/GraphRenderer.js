@@ -1,24 +1,14 @@
 import { GraphDisplay } from "../GraphDisplay.js";
-import { createGraphViewTemplate } from "./GraphViewTemplates.js";
+import GraphView from "./components/GraphView.js";
 import ConnectionTypesPanel from "./components/ConnectionTypesPanel.js";
 import OptionsPanel from "./components/OptionsPanel.js";
 
 /**
- * @typedef {import("./GraphViewTemplates.js").GraphViewTemplateOptions & {
+ * @typedef {import("./components/GraphView.js").GraphViewConfiguration & {
  *   container: HTMLElement,
  *   markerPrefix: string,
  *   connectionTypes: Map<string, import("../ConnectionType.js").ConnectionType>
  * }} GraphViewOptions
- *
- * @typedef {object} GraphViewElements
- * @property {HTMLElement} viewport Graph viewport root element.
- * @property {HTMLElement} world Transformed graph world element.
- * @property {SVGSVGElement} edgeSvg Main graph edge layer.
- * @property {HTMLElement} nodeLayer Main graph node layer.
- * @property {HTMLElement} emptyState Empty graph message element.
- * @property {SVGSVGElement | null} selectedEdgeSvg Selected edge layer, when enabled.
- * @property {HTMLElement | null} selectedNodeLayer Selected node layer, when enabled.
- * @property {string} markerId Unique marker ID used by this graph view.
  */
 const highlightOptions = [
 	{ id: "upstream", label: "Highlight upstream" },
@@ -29,32 +19,23 @@ let graphViewInstanceCount = 0;
 /** Provide shared graph-view controls, connection keys, and configurable highlighting. */
 export class GraphRenderer extends GraphDisplay {
 	/**
-	 * Create a graph viewport from a reusable template and initialize shared controls.
+	 * Create a graph viewport component and initialize shared controls.
 	 *
 	 * @param {GraphViewOptions} options Graph container, view-specific classes, labels, and optional layers.
 	 * @returns {void}
 	 */
 	constructor(options) {
-		const elements = createGraphView(options);
-		super(elements);
+		const graphView = createGraphView(options);
+		super(graphView);
+		this.graphView = graphView;
 		this.connectionTypes = new Map(options.connectionTypes);
-		this.markerId = elements.markerId;
+		this.markerId = graphView.markerId;
+		this.connectionTypesPanel = graphView.connectionTypesPanel;
+		this.optionsPanel = graphView.optionsPanel;
 		this.highlightOptions = this.getHighlightOptions();
 		this.highlightSettings = new Map(
 			this.highlightOptions.map((option) => [option.id, this.getDefaultHighlightOptions().includes(option.id)]),
 		);
-		const connectionTypesPanelPlaceholder = this.viewport.querySelector("[data-connection-types-panel]");
-		if (!(connectionTypesPanelPlaceholder instanceof HTMLTemplateElement)) {
-			throw new Error("Graph view template is missing [data-connection-types-panel].");
-		}
-		this.connectionTypesPanel = new ConnectionTypesPanel();
-		connectionTypesPanelPlaceholder.replaceWith(this.connectionTypesPanel.element);
-		const optionsPanelPlaceholder = this.viewport.querySelector("[data-options-panel]");
-		if (!(optionsPanelPlaceholder instanceof HTMLTemplateElement)) {
-			throw new Error("Graph view template is missing [data-options-panel].");
-		}
-		this.optionsPanel = new OptionsPanel();
-		optionsPanelPlaceholder.replaceWith(this.optionsPanel.element);
 		this.createGraphDisplayOptions();
 	}
 
@@ -78,21 +59,6 @@ export class GraphRenderer extends GraphDisplay {
 	 */
 	getDefaultHighlightOptions() {
 		return [];
-	}
-
-	/**
-	 * Find a required element inside this graph view.
-	 *
-	 * @param {string} selector Scoped CSS selector for an element in the view.
-	 * @returns {HTMLElement} Matching graph-view element.
-	 * @throws {Error} If the view does not contain a matching element.
-	 */
-	getViewElement(selector) {
-		const element = requireGraphElement(this.viewport, selector);
-		if (!(element instanceof HTMLElement)) {
-			throw new Error(`Graph view element ${selector} must be an HTML element.`);
-		}
-		return element;
 	}
 
 	/**
@@ -133,44 +99,23 @@ export class GraphRenderer extends GraphDisplay {
 }
 
 /**
- * Create a graph view from a template and resolve its internal graph elements.
+ * Create and append a graph view component.
  *
  * @param {GraphViewOptions} options Graph container and view configuration.
- * @returns {GraphViewElements} Graph display elements and the unique SVG marker ID.
- * @throws {Error} If the container or any required graph-view element is missing.
+ * @returns {GraphView} The initialized graph view component.
+ * @throws {Error} If the container is missing.
  */
 function createGraphView(options) {
-	const { container, markerPrefix, ...viewOptions } = options;
+	const { container, markerPrefix } = options;
 	if (!container) throw new Error("A container element is required to create a graph view.");
 	const markerId = `${markerPrefix}-${++graphViewInstanceCount}`;
-	const template = document.createElement("template");
-	template.innerHTML = createGraphViewTemplate({ ...viewOptions, markerId });
-	const viewport = template.content.firstElementChild;
-	if (!viewport) throw new Error("Could not create the graph viewport.");
-	const elements = {
-		viewport,
-		world: requireGraphElement(viewport, "[data-graph-world]"),
-		edgeSvg: requireGraphElement(viewport, "[data-graph-edges]"),
-		nodeLayer: requireGraphElement(viewport, "[data-graph-nodes]"),
-		emptyState: requireGraphElement(viewport, "[data-graph-empty]"),
-		selectedEdgeSvg: viewport.querySelector("[data-selected-graph-edges]"),
-		selectedNodeLayer: viewport.querySelector("[data-selected-graph-nodes]"),
+	const graphView = new GraphView({
+		...options,
 		markerId,
-	};
-	container.append(viewport);
-	return elements;
-}
-
-/**
- * Find an element required by the graph view implementation.
- *
- * @param {ParentNode} root View or template root to search.
- * @param {string} selector Scoped CSS selector for the required element.
- * @returns {Element} Matching element.
- * @throws {Error} If the required graph-view element is missing.
- */
-function requireGraphElement(root, selector) {
-	const element = root.querySelector(selector);
-	if (!element) throw new Error(`Graph view template is missing ${selector}.`);
-	return element;
+		controls: options.controls ?? null,
+		optionsPanel: new OptionsPanel(),
+		connectionTypesPanel: new ConnectionTypesPanel(),
+	});
+	container.append(graphView.element);
+	return graphView;
 }

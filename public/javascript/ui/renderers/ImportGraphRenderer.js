@@ -6,7 +6,7 @@ import {
 	DEFAULT_CONNECTION_HIGHLIGHT_COLORS,
 } from "../ConnectionType.js";
 import { GraphRenderer } from "./GraphRenderer.js";
-import { importGraphControlsTemplate } from "./GraphViewTemplates.js";
+import ImportGraphControls from "./components/ImportGraphControls.js";
 
 const NODE_HEIGHT = 132;
 const connectionTypes = new Map([
@@ -39,13 +39,17 @@ export class ImportGraphRenderer extends GraphRenderer {
 			emptyMessage: "Choose a project folder and scan it to see its file relationships.",
 			markerPrefix: "arrowhead",
 			selectionLayers: true,
-			controlsTemplate: importGraphControlsTemplate,
+			controls: new ImportGraphControls(),
 			connectionTypes,
 		});
-		this.showLocalButton = this.getViewElement("[data-show-local]");
-		this.showDependenciesButton = this.getViewElement("[data-show-dependencies]");
-		this.showDependantsButton = this.getViewElement("[data-show-dependants]");
-		this.showFullGraphButton = this.getViewElement("[data-show-full-graph]");
+		if (!(this.graphView.controls instanceof ImportGraphControls)) {
+			throw new Error("Import graph view is missing its traversal controls component.");
+		}
+		this.importControls = this.graphView.controls;
+		this.showLocalButton = this.importControls.showLocalButton;
+		this.showDependenciesButton = this.importControls.showDependenciesButton;
+		this.showDependantsButton = this.importControls.showDependantsButton;
+		this.showFullGraphButton = this.importControls.showFullGraphButton;
 		this.mainGraph = null;
 		this.mainViewState = null;
 		this.localMode = false;
